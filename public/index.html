@@ -6,34 +6,41 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="chat-container">
-    <ul id="messages"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" placeholder="Type a message..." />
-      <button>Send</button>
-    </form>
-  </div>
+  <h2>🕵️ Anonymous Chat</h2>
+  <ul id="messages"></ul>
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Type a message..." />
+    <button>Send</button>
+  </form>
 
-  <!-- Load socket.io -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    let nickname = "Anonymous";
 
-    const form = document.getElementById('form');
-    const input = document.getElementById('input');
-    const messages = document.getElementById('messages');
+    // Receive nickname from server
+    socket.on("set nickname", (name) => {
+      nickname = name;
+      console.log("Your nickname:", nickname);
+    });
 
-    form.addEventListener('submit', function(e) {
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const messages = document.getElementById("messages");
+
+    // Send message
+    form.addEventListener("submit", (e) => {
       e.preventDefault();
       if (input.value) {
-        socket.emit('chat message', input.value);
-        input.value = '';
+        socket.emit("chat message", input.value);
+        input.value = "";
       }
     });
 
-    socket.on('chat message', function(msg) {
-      const item = document.createElement('li');
-      item.textContent = msg;
+    // Display messages
+    socket.on("chat message", (data) => {
+      const item = document.createElement("li");
+      item.textContent = `${data.user}: ${data.text}`;
       messages.appendChild(item);
       window.scrollTo(0, document.body.scrollHeight);
     });

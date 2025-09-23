@@ -1,9 +1,8 @@
-// Import required modules
+// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-// Initialize express and http server
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -11,25 +10,38 @@ const io = new Server(server);
 // Serve static files from "public" folder
 app.use(express.static("public"));
 
+// Fun nickname generator
+const adjectives = ["Silent", "Mysterious", "Crazy", "Shadow", "Swift", "Angry", "Happy", "Wild", "Gentle", "Dark"];
+const animals = ["Tiger", "Wolf", "Dragon", "Eagle", "Fox", "Bear", "Panther", "Shark", "Hawk", "Owl"];
+
+function generateNickname() {
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  const number = Math.floor(Math.random() * 1000);
+  return `${adj}${animal}${number}`;
+}
+
 // Handle socket connections
 io.on("connection", (socket) => {
-  console.log("✅ A user connected");
+  const userNickname = generateNickname();
+  console.log(`✅ ${userNickname} connected`);
 
-  // When someone sends a chat message
+  // Send nickname to client
+  socket.emit("set nickname", userNickname);
+
+  // Handle chat messages
   socket.on("chat message", (msg) => {
-    io.emit("chat message", msg); // broadcast to everyone
+    io.emit("chat message", { user: userNickname, text: msg });
   });
 
-  // When someone disconnects
+  // Handle disconnect
   socket.on("disconnect", () => {
-    console.log("❌ A user disconnected");
+    console.log(`❌ ${userNickname} disconnected`);
   });
 });
 
-// Railway provides PORT, fallback to 3000 for local use
+// Use Railway dynamic port
 const PORT = process.env.PORT || 3000;
-
-// IMPORTANT: listen on "0.0.0.0" so Railway can expose it
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
