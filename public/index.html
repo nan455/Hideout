@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>🕵️Hideout Chat </h2>
+  <h2>🕵️ Hideout Chat</h2>
   <ul id="messages"></ul>
   <form id="form">
     <input id="input" autocomplete="off" placeholder="Type a message..." />
@@ -18,15 +18,15 @@
     const socket = io();
     let nickname = "Anonymous";
 
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const messages = document.getElementById("messages");
+
     // Receive nickname from server
     socket.on("set nickname", (name) => {
       nickname = name;
       console.log("Your nickname:", nickname);
     });
-
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
 
     // Send message
     form.addEventListener("submit", (e) => {
@@ -37,11 +37,26 @@
       }
     });
 
-    // Display messages
+    // Display incoming messages with avatar
     socket.on("chat message", (data) => {
       const item = document.createElement("li");
-      item.textContent = `${data.user}: ${data.text}`;
+
+      // Create avatar image using Dicebear API
+      const avatar = document.createElement("img");
+      avatar.src = `https://avatars.dicebear.com/api/identicon/${data.user}.svg`;
+      avatar.width = 30;
+      avatar.height = 30;
+      avatar.style.marginRight = "10px";
+      avatar.style.verticalAlign = "middle";
+
+      // Add message text
+      const text = document.createTextNode(`${data.user}: ${data.text}`);
+
+      item.appendChild(avatar);
+      item.appendChild(text);
       messages.appendChild(item);
+
+      // Scroll to bottom
       window.scrollTo(0, document.body.scrollHeight);
     });
   </script>
