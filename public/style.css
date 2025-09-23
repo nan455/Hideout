@@ -1,58 +1,89 @@
+/* Body styles */
 body {
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: #fff;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  h2 {
-    margin-top: 20px;
-  }
-  
-  #messages {
-    list-style: none;
-    padding: 0;
-    margin: 20px 0;
-    width: 90%;
-    max-width: 600px;
-    height: 300px;
-    overflow-y: auto;
-    background: #222;
-    border-radius: 10px;
-  }
-  
-  #messages li {
-    padding: 8px 12px;
-    margin: 5px;
-    background: #333;
-    border-radius: 5px;
-  }
-  
-  form {
-    display: flex;
-    width: 90%;
-    max-width: 600px;
-    margin-bottom: 20px;
-  }
-  
-  #input {
-    flex: 1;
-    padding: 10px;
-    border-radius: 5px;
-    border: none;
-  }
-  
-  button {
-    padding: 10px 20px;
-    margin-left: 5px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header */
+h2 {
+  margin-top: 20px;
+}
+
+/* Messages container */
+#messages {
+  list-style: none;
+  padding: 10px;
+  margin: 20px 0;
+  width: 90%;
+  max-width: 600px;
+  height: 400px;
+  overflow-y: auto;
+  background: #222;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual message item */
+#messages li {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 5px 0;
+  background: #333;
+  border-radius: 5px;
+  word-break: break-word;
+}
+
+/* Avatar image */
+#messages li img {
+  border-radius: 50%;
+  margin-right: 10px;
+  width: 35px;
+  height: 35px;
+}
+
+/* Form */
+form {
+  display: flex;
+  width: 90%;
+  max-width: 600px;
+  margin-bottom: 20px;
+}
+
+/* Input field */
+#input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  font-size: 16px;
+}
+
+/* Send button */
+button {
+  padding: 10px 20px;
+  margin-left: 5px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Scrollbar customization (optional) */
+#messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+#messages::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
