@@ -1,26 +1,35 @@
+// Import required modules
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const app = express(); // ✅ you forgot this line
+// Initialize express and http server
+const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static("public")); // serves index.html + CSS + JS
+// Serve static files from "public" folder
+app.use(express.static("public"));
 
+// Handle socket connections
 io.on("connection", (socket) => {
-  console.log("A user connected");
+  console.log("✅ A user connected");
 
+  // When someone sends a chat message
   socket.on("chat message", (msg) => {
-    io.emit("chat message", msg); // send to everyone
+    io.emit("chat message", msg); // broadcast to everyone
   });
 
+  // When someone disconnects
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    console.log("❌ A user disconnected");
   });
 });
 
+// Railway provides PORT, fallback to 3000 for local use
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+
+// IMPORTANT: listen on "0.0.0.0" so Railway can expose it
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
