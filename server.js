@@ -13,8 +13,12 @@ const io = new Server(server, {
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/avatars", express.static(path.join(__dirname, "avatars"))); // Serve avatars
 
-// Enhanced random name generator
+// -------------------- CONFIG --------------------
+const oneHour = 60 * 60 * 1000; // 1 hour in ms
+
+// -------------------- HELPERS --------------------
 function randomName() {
   const adjectives = [
     "Silent", "Wild", "Happy", "Crazy", "Mysterious", "Swift", "Noble", "Brave", 
@@ -24,9 +28,8 @@ function randomName() {
     "Dragon", "Tiger", "Panda", "Wolf", "Eagle", "Shark", "Lion", "Fox", 
     "Bear", "Hawk", "Deer", "Owl", "Lynx", "Raven", "Phoenix", "Jaguar"
   ];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  return adj + animal;
+  return adjectives[Math.floor(Math.random() * adjectives.length)] +
+         animals[Math.floor(Math.random() * animals.length)];
 }
 
 function randomAvatar() {
@@ -42,10 +45,9 @@ function randomAvatar() {
   return avatars[Math.floor(Math.random() * avatars.length)];
 }
 
-// Store room information
+// -------------------- ROOM MANAGEMENT --------------------
 const rooms = new Map();
 
-// Enhanced room management
 function getRoomInfo(roomName) {
   if (!rooms.has(roomName)) {
     rooms.set(roomName, {
@@ -63,8 +65,7 @@ function addUserToRoom(socket, roomName) {
   roomInfo.lastActivity = Date.now();
   socket.join(roomName);
   socket.room = roomName;
-  
-  // Emit updated user count
+
   io.to(roomName).emit("roomUpdate", {
     userCount: roomInfo.users.size,
     roomName: roomName
@@ -77,19 +78,18 @@ function removeUserFromRoom(socket) {
     if (roomInfo) {
       roomInfo.users.delete(socket.id);
       roomInfo.lastActivity = Date.now();
-      
-      // Emit updated user count
+
       io.to(socket.room).emit("roomUpdate", {
         userCount: roomInfo.users.size,
         roomName: socket.room
       });
-      
-      // Clean up empty rooms after 5 minutes
+
       if (roomInfo.users.size === 0) {
         setTimeout(() => {
           const currentRoomInfo = rooms.get(socket.room);
           if (currentRoomInfo && currentRoomInfo.users.size === 0) {
             rooms.delete(socket.room);
+            console.log(`🧹 Cleaned up empty room: ${socket.room}`);
           }
         }, 5 * 60 * 1000);
       }
@@ -97,27 +97,23 @@ function removeUserFromRoom(socket) {
   }
 }
 
-// Store typing users
+// -------------------- TYPING MANAGEMENT --------------------
 const typingUsers = new Map();
 
+// -------------------- SOCKET.IO CONNECTION --------------------
 io.on("connection", (socket) => {
   const nickname = randomName();
   const avatar = randomAvatar();
-  
+
   console.log(`🔗 ${nickname} connected (${socket.id})`);
 
   socket.emit("welcome", { nickname, avatar });
 
   socket.on("joinMode", (mode, param) => {
     let roomName = "";
-    
-    if (mode === "random") {
-      roomName = "random";
-    } else if (mode === "room") {
-      roomName = `room_${param}`;
-    } else if (mode === "interest") {
-      roomName = `interest_${param}`;
-    }
+    if (mode === "random") roomName = "random";
+    else if (mode === "room") roomName = `room_${param}`;
+    else if (mode === "interest") roomName = `interest_${param}`;
 
     addUserToRoom(socket, roomName);
 
@@ -134,12 +130,11 @@ io.on("connection", (socket) => {
 
   socket.on("chat message", (msg) => {
     if (socket.room && msg.trim().length > 0) {
-      // Basic message filtering (you can enhance this)
-      const filteredMsg = msg.substring(0, 500); // Limit message length
-      
+      const filteredMsg = msg.substring(0, 500);
+
       const roomInfo = getRoomInfo(socket.room);
       roomInfo.lastActivity = Date.now();
-      
+
       io.to(socket.room).emit("chat message", {
         nickname,
         avatar,
@@ -147,28 +142,23 @@ io.on("connection", (socket) => {
         timestamp: Date.now(),
         type: "user"
       });
-      
+
       console.log(`💬 ${nickname} in ${socket.room}: ${filteredMsg}`);
     }
   });
 
   socket.on("typing", () => {
     if (socket.room) {
-      if (!typingUsers.has(socket.room)) {
-        typingUsers.set(socket.room, new Set());
-      }
+      if (!typingUsers.has(socket.room)) typingUsers.set(socket.room, new Set());
       typingUsers.get(socket.room).add(nickname);
-      
+
       socket.to(socket.room).emit("typing", nickname);
-      
-      // Auto-stop typing after 3 seconds
+
       setTimeout(() => {
         const roomTyping = typingUsers.get(socket.room);
         if (roomTyping) {
           roomTyping.delete(nickname);
-          if (roomTyping.size === 0) {
-            typingUsers.delete(socket.room);
-          }
+          if (roomTyping.size === 0) typingUsers.delete(socket.room);
         }
         socket.to(socket.room).emit("stopTyping", nickname);
       }, 3000);
@@ -180,9 +170,7 @@ io.on("connection", (socket) => {
       const roomTyping = typingUsers.get(socket.room);
       if (roomTyping) {
         roomTyping.delete(nickname);
-        if (roomTyping.size === 0) {
-          typingUsers.delete(socket.room);
-        }
+        if (roomTyping.size === 0) typingUsers.delete(socket.room);
       }
       socket.to(socket.room).emit("stopTyping", nickname);
     }
@@ -190,17 +178,14 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`🔌 ${nickname} disconnected (${socket.id})`);
-    
+
     if (socket.room) {
-      // Clean up typing status
       const roomTyping = typingUsers.get(socket.room);
       if (roomTyping) {
         roomTyping.delete(nickname);
-        if (roomTyping.size === 0) {
-          typingUsers.delete(socket.room);
-        }
+        if (roomTyping.size === 0) typingUsers.delete(socket.room);
       }
-      
+
       io.to(socket.room).emit("chat message", {
         nickname: "System",
         avatar: "",
@@ -208,22 +193,19 @@ io.on("connection", (socket) => {
         timestamp: Date.now(),
         type: "system"
       });
-      
+
       removeUserFromRoom(socket);
     }
   });
 
-  // Heartbeat to detect disconnected clients
   socket.on("ping", () => {
     socket.emit("pong");
   });
 });
 
-// Clean up inactive rooms every hour
+// -------------------- CLEANUP --------------------
 setInterval(() => {
   const now = Date.now();
-  const oneHour = 60 * 60 * 1000;
-  
   for (const [roomName, roomInfo] of rooms.entries()) {
     if (now - roomInfo.lastActivity > oneHour && roomInfo.users.size === 0) {
       rooms.delete(roomName);
@@ -232,7 +214,7 @@ setInterval(() => {
   }
 }, oneHour);
 
-// API endpoint to get server stats (optional)
+// -------------------- API STATS --------------------
 app.get("/api/stats", (req, res) => {
   const stats = {
     totalRooms: rooms.size,
@@ -246,5 +228,4 @@ app.get("/api/stats", (req, res) => {
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`🚀 Hideout Chat Server running on port ${PORT}`);
-  console.log(`📊 Server started at ${new Date().toLocaleString()}`);
 });
