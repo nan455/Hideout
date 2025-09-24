@@ -1,83 +1,97 @@
-/* General body styles */
 body {
-  font-family: Arial, sans-serif;
-  background: #1e1e2f;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e, #162447);
   color: white;
   text-align: center;
   margin: 0;
   padding: 0;
 }
 
-/* Header */
 h1 {
   margin-top: 20px;
+  font-size: 2.5em;
+  letter-spacing: 2px;
+  color: #f3f3f3;
 }
 
-/* Mode selection buttons */
+#mode-selection {
+  margin-top: 30px;
+}
+
 #mode-selection button {
-  padding: 10px 20px;
+  padding: 15px 25px;
   margin: 10px;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 50px;
   border: none;
-  background-color: #4cafef;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: white;
-  transition: background 0.3s ease;
-}
-#mode-selection button:hover {
-  background-color: #3b8cd1;
+  box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
 }
 
-/* Chat container */
+#mode-selection button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 8px 20px rgba(0,0,0,0.4);
+}
+
 #chat-container {
-  max-width: 600px;
+  max-width: 700px;
   margin: auto;
   display: none;
 }
 
-/* Room selection / interest selection */
+#back-btn {
+  background: #ff416c;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#back-btn:hover {
+  background: #ff4b2b;
+}
+
 #room-selection, #interest-selection {
   margin-bottom: 15px;
 }
 
-/* Messages list */
 #messages {
   list-style: none;
-  padding: 10px;
+  padding: 15px;
   height: 400px;
   overflow-y: auto;
-  background: #2c2c3c;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  box-shadow: inset 0px 0px 10px rgba(0,0,0,0.3);
 }
 
-/* Individual messages */
 #messages li {
   display: flex;
   align-items: center;
   padding: 8px;
-  margin-bottom: 5px;
-  border-radius: 5px;
-  word-break: break-word;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.2);
 }
 
-/* Avatar image */
 #messages li img {
   border-radius: 50%;
   margin-right: 10px;
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
 }
 
-/* Typing indicator */
 #typing {
   font-style: italic;
   color: #aaa;
   margin-top: 5px;
 }
 
-/* Message input form */
 #form {
   display: flex;
   margin-top: 10px;
@@ -85,30 +99,24 @@ h1 {
 
 #input {
   flex: 1;
-  padding: 10px;
-  border-radius: 5px;
+  padding: 12px;
+  border-radius: 50px;
   border: none;
   font-size: 16px;
+  outline: none;
 }
 
-/* Send button */
 button {
-  padding: 10px;
-  background: #4cafef;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 50px;
   cursor: pointer;
+  margin-left: 5px;
+  transition: all 0.3s ease;
 }
 
 button:hover {
-  background-color: #3b8cd1;
-}
-
-/* Dropdown / input styling */
-select, input {
-  padding: 8px;
-  border-radius: 5px;
-  border: none;
-  font-size: 14px;
+  transform: translateY(-2px);
 }

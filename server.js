@@ -18,7 +18,7 @@ function randomName() {
 }
 
 function randomDP(nickname) {
-  return `https://api.multiavatar.com/${nickname}.png`; // MULTIAVATAR API
+  return `https://api.multiavatar.com/${encodeURIComponent(nickname)}.svg`;
 }
 
 io.on("connection", (socket) => {

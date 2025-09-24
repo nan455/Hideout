@@ -7,7 +7,7 @@
 </head>
 <body>
 
-  <h1>🔥 Hideout Chat 🔥</h1>
+  <h1> Hideout Chat </h1>
 
   <!-- Mode Selection -->
   <div id="mode-selection">
@@ -19,6 +19,8 @@
 
   <!-- Chat UI -->
   <div id="chat-container">
+    <button id="back-btn" style="display:none;">⬅ Back to Menu</button>
+
     <div id="room-selection" style="display:none;">
       <input id="room" placeholder="Enter room code">
       <button id="join-room-btn">Join Room</button>
@@ -37,7 +39,8 @@
     <p id="typing"></p>
 
     <form id="form">
-      <input id="input" autocomplete="off" placeholder="Type a message..." /><button>Send</button>
+      <input id="input" autocomplete="off" placeholder="Type a message..." />
+      <button>Send</button>
     </form>
   </div>
 
@@ -52,6 +55,8 @@
     const messages = document.getElementById("messages");
     const typing = document.getElementById("typing");
 
+    const backBtn = document.getElementById("back-btn");
+
     // Receive nickname & avatar
     socket.on("welcome", (data) => {
       nickname = data.nickname;
@@ -62,6 +67,7 @@
     function joinMode(mode) {
       document.getElementById("mode-selection").style.display = "none";
       document.getElementById("chat-container").style.display = "block";
+      backBtn.style.display = "inline-block";
 
       if (mode === "room") {
         document.getElementById("room-selection").style.display = "block";
@@ -72,11 +78,22 @@
       }
     }
 
+    // Back button
+    backBtn.onclick = () => {
+      document.getElementById("mode-selection").style.display = "block";
+      document.getElementById("chat-container").style.display = "none";
+      document.getElementById("room-selection").style.display = "none";
+      document.getElementById("interest-selection").style.display = "none";
+      messages.innerHTML = "";
+    };
+
+    // Join room
     document.getElementById("join-room-btn").onclick = () => {
       const room = document.getElementById("room").value || "room123";
       socket.emit("joinMode", "room", room);
     };
 
+    // Join interest
     document.getElementById("join-interest-btn").onclick = () => {
       const interest = document.getElementById("interest").value;
       socket.emit("joinMode", "interest", interest);
