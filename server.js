@@ -24,15 +24,18 @@ function randomAvatar() {
     "/avatars/avatar3.png",
     "/avatars/avatar4.png",
     "/avatars/avatar5.png",
-    "/avatars/avatar6.png",
-    "/avatars/avatar7.png"
+    "/avatars/avatar6.png"
   ];
   return avatars[Math.floor(Math.random() * avatars.length)];
 }
 
+let oneVsOneRooms = [];
+
 io.on("connection", (socket) => {
   const nickname = randomName();
   const avatar = randomAvatar();
+
+  console.log(`${nickname} connected`);
 
   socket.emit("welcome", { nickname, avatar });
 
@@ -46,6 +49,23 @@ io.on("connection", (socket) => {
     } else if (mode === "interest") {
       socket.join(param);
       socket.room = param;
+    } else if (mode === "1v1") {
+      let roomFound = false;
+      for (let r of oneVsOneRooms) {
+        const clients = io.sockets.adapter.rooms.get(r) || new Set();
+        if (clients.size < 2) {
+          socket.join(r);
+          socket.room = r;
+          roomFound = true;
+          break;
+        }
+      }
+      if (!roomFound) {
+        const newRoom = `1v1_${Date.now()}`;
+        oneVsOneRooms.push(newRoom);
+        socket.join(newRoom);
+        socket.room = newRoom;
+      }
     }
 
     io.to(socket.room).emit("chat message", {
@@ -77,13 +97,29 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("leave1v1", () => {
+    if (socket.room && socket.room.startsWith("1v1_")) {
+      socket.leave(socket.room);
+      const clients = io.sockets.adapter.rooms.get(socket.room);
+      if (!clients || clients.size === 0) {
+        oneVsOneRooms = oneVsOneRooms.filter(r => r !== socket.room);
+      }
+      socket.room = null;
+    }
+  });
+
   socket.on("disconnect", () => {
+    console.log(`${nickname} disconnected`);
     if (socket.room) {
       io.to(socket.room).emit("chat message", {
         nickname: "System",
         avatar: "",
         msg: `${nickname} left the room.`,
       });
+      const clients = io.sockets.adapter.rooms.get(socket.room);
+      if (!clients || clients.size === 0 && socket.room.startsWith("1v1_")) {
+        oneVsOneRooms = oneVsOneRooms.filter(r => r !== socket.room);
+      }
     }
   });
 });
