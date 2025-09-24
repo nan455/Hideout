@@ -142,6 +142,11 @@
     socket.on("stopTyping", () => {
       typing.textContent = "";
     });
+    backBtn.onclick = () => {
+  socket.disconnect();
+  location.reload(); // reload page to reset connection
+};
+
   </script>
 </body>
 </html>
