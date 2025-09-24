@@ -2,53 +2,42 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>🔥 Hideout Chat</title>
+  <title>Hideout Chat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>🔥 Hideout Chat 🔥</h1>
+  <h1> Hideout Chat </h1>
 
   <!-- Mode Selection -->
   <div id="mode-selection">
-    <h2>Select Chat Mode</h2>
+    <h2>Choose Chat Mode</h2>
     <button onclick="joinMode('random')">🔀 Random Chat</button>
     <button onclick="joinMode('room')">🔒 Room Chat</button>
-    <button onclick="joinMode('interest')">🎯 Interest Chat</button>
-    <button onclick="joinMode('1v1')">🤝 1 vs 1 Chat</button>
+    <button onclick="joinMode('interest')">🎯 Interest-based Chat</button>
   </div>
 
-  <!-- Waiting Room -->
-  <div id="waiting-container">
-    <h2>🤝 Waiting for a partner...</h2>
-    <div id="avatar-slideshow"></div>
-  </div>
-
-  <!-- Chat Container -->
+  <!-- Chat UI -->
   <div id="chat-container">
-    <button id="back-btn">⬅ Back to Menu</button>
+    <button id="back-btn" style="display:none;">⬅ Back to Menu</button>
 
-    <!-- Room Chat Input -->
-    <div id="room-selection">
+    <div id="room-selection" style="display:none;">
       <input id="room" placeholder="Enter room code">
       <button id="join-room-btn">Join Room</button>
     </div>
 
-    <!-- Interest Chat Selection -->
-    <div id="interest-selection">
+    <div id="interest-selection" style="display:none;">
       <select id="interest">
-        <option value="science">🔬 Science</option>
-        <option value="horror">👻 Horror</option>
-        <option value="comedy">😂 Comedy</option>
+        <option value="science">Science</option>
+        <option value="horror">Horror</option>
+        <option value="comedy">Comedy</option>
       </select>
       <button id="join-interest-btn">Join</button>
     </div>
 
-    <!-- Chat Messages -->
     <ul id="messages"></ul>
     <p id="typing"></p>
 
-    <!-- Input Form -->
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Type a message..." />
       <button>Send</button>
@@ -60,62 +49,57 @@
     const socket = io();
     let nickname = "";
     let avatar = "";
-    let isWaiting = false;
 
     const form = document.getElementById("form");
     const input = document.getElementById("input");
     const messages = document.getElementById("messages");
     const typing = document.getElementById("typing");
+
     const backBtn = document.getElementById("back-btn");
 
+    // Receive nickname & avatar
     socket.on("welcome", (data) => {
       nickname = data.nickname;
       avatar = data.avatar;
     });
 
+    // Mode selection
     function joinMode(mode) {
       document.getElementById("mode-selection").style.display = "none";
+      document.getElementById("chat-container").style.display = "block";
       backBtn.style.display = "inline-block";
-
-      document.getElementById("room-selection").style.display = "none";
-      document.getElementById("interest-selection").style.display = "none";
 
       if (mode === "room") {
         document.getElementById("room-selection").style.display = "block";
       } else if (mode === "interest") {
         document.getElementById("interest-selection").style.display = "block";
-      } else if (mode === "1v1") {
-        document.getElementById("waiting-container").style.display = "flex";
-        isWaiting = true;
-        socket.emit("joinMode", "1v1");
-
-        const avatarContainer = document.getElementById("avatar-slideshow");
-        avatarContainer.innerHTML = "";
-        for (let i = 1; i <= 6; i++) {
-          const img = document.createElement("img");
-          img.src = `/avatars/avatar${i}.png`;
-          avatarContainer.appendChild(img);
-        }
       } else {
-        document.getElementById("chat-container").style.display = "flex";
-        socket.emit("joinMode", mode);
+        socket.emit("joinMode", "random");
       }
     }
 
+    // Back button
+    backBtn.onclick = () => {
+      document.getElementById("mode-selection").style.display = "block";
+      document.getElementById("chat-container").style.display = "none";
+      document.getElementById("room-selection").style.display = "none";
+      document.getElementById("interest-selection").style.display = "none";
+      messages.innerHTML = "";
+    };
+
+    // Join room
     document.getElementById("join-room-btn").onclick = () => {
       const room = document.getElementById("room").value || "room123";
       socket.emit("joinMode", "room", room);
-      document.getElementById("room-selection").style.display = "none";
-      document.getElementById("chat-container").style.display = "flex";
     };
 
+    // Join interest
     document.getElementById("join-interest-btn").onclick = () => {
       const interest = document.getElementById("interest").value;
       socket.emit("joinMode", "interest", interest);
-      document.getElementById("interest-selection").style.display = "none";
-      document.getElementById("chat-container").style.display = "flex";
     };
 
+    // Send message
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       if (input.value) {
@@ -125,6 +109,7 @@
       }
     });
 
+    // Typing indicator
     input.addEventListener("input", () => {
       if (input.value) {
         socket.emit("typing");
@@ -133,24 +118,23 @@
       }
     });
 
-    socket.on("paired", () => {
-      document.getElementById("waiting-container").style.display = "none";
-      document.getElementById("chat-container").style.display = "flex";
-      isWaiting = false;
-    });
-
+    // Display messages
     socket.on("chat message", (data) => {
       const li = document.createElement("li");
+
       if (data.avatar) {
         const avatarImg = document.createElement("img");
         avatarImg.src = data.avatar;
         li.appendChild(avatarImg);
       }
-      li.appendChild(document.createTextNode(`${data.nickname}: ${data.msg}`));
+
+      const text = document.createTextNode(`${data.nickname}: ${data.msg}`);
+      li.appendChild(text);
       messages.appendChild(li);
       messages.scrollTop = messages.scrollHeight;
     });
 
+    // Typing indicator
     socket.on("typing", (name) => {
       typing.textContent = `${name} is typing...`;
     });
@@ -158,14 +142,11 @@
     socket.on("stopTyping", () => {
       typing.textContent = "";
     });
-
     backBtn.onclick = () => {
-      if (isWaiting) {
-        socket.emit("leave1v1");
-      }
-      socket.disconnect();
-      location.reload();
-    };
+  socket.disconnect();
+  location.reload(); // reload page to reset connection
+};
+
   </script>
 </body>
 </html>
