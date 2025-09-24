@@ -9,7 +9,6 @@
 
   <h1> Hideout Chat </h1>
 
-  <!-- MAIN MODE SELECTION -->
   <div id="mode-selection">
     <h2>Select Chat Mode</h2>
     <button onclick="joinMode('random')">🔀 Random Group Chat</button>
@@ -18,23 +17,19 @@
     <button onclick="joinMode('1v1')">🤝 1 vs 1 Chat</button>
   </div>
 
-  <!-- WAITING ROOM FOR 1v1 MODE -->
   <div id="waiting-container">
     <h2>🤝 Waiting for a partner...</h2>
     <div id="avatar-slideshow"></div>
   </div>
 
-  <!-- CHAT CONTAINER -->
   <div id="chat-container">
     <button id="back-btn" style="display:none;">⬅ Back to Menu</button>
 
-    <!-- ROOM SELECTION -->
     <div id="room-selection" style="display:none;">
       <input id="room" placeholder="Enter room code">
       <button id="join-room-btn">Join Room</button>
     </div>
 
-    <!-- INTEREST SELECTION -->
     <div id="interest-selection" style="display:none;">
       <select id="interest">
         <option value="science">🔬 Science</option>
@@ -44,11 +39,9 @@
       <button id="join-interest-btn">Join</button>
     </div>
 
-    <!-- CHAT MESSAGES -->
     <ul id="messages"></ul>
     <p id="typing"></p>
 
-    <!-- MESSAGE INPUT -->
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Type a message..." />
       <button>Send</button>
@@ -128,13 +121,13 @@
       }
     });
 
-    socket.on("chat message", (data) => {
-      if (isWaiting && data.nickname !== "System") {
-        document.getElementById("waiting-container").style.display = "none";
-        document.getElementById("chat-container").style.display = "block";
-        isWaiting = false;
-      }
+    socket.on("paired", () => {
+      document.getElementById("waiting-container").style.display = "none";
+      document.getElementById("chat-container").style.display = "block";
+      isWaiting = false;
+    });
 
+    socket.on("chat message", (data) => {
       const li = document.createElement("li");
       if (data.avatar) {
         const avatarImg = document.createElement("img");

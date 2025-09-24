@@ -51,15 +51,21 @@ io.on("connection", (socket) => {
       socket.room = param;
     } else if (mode === "1v1") {
       let roomFound = false;
+
       for (let r of oneVsOneRooms) {
         const clients = io.sockets.adapter.rooms.get(r) || new Set();
         if (clients.size < 2) {
           socket.join(r);
           socket.room = r;
           roomFound = true;
+
+          if (clients.size + 1 === 2) {
+            io.to(r).emit("paired");
+          }
           break;
         }
       }
+
       if (!roomFound) {
         const newRoom = `1v1_${Date.now()}`;
         oneVsOneRooms.push(newRoom);
