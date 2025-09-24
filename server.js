@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -7,41 +6,71 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Serve static files from "public" folder
 app.use(express.static("public"));
 
-// Fun nickname generator
-const adjectives = ["Silent", "Mysterious", "Crazy", "Shadow", "Swift", "Angry", "Happy", "Wild", "Gentle", "Dark"];
-const animals = ["Tiger", "Wolf", "Dragon", "Eagle", "Fox", "Bear", "Panther", "Shark", "Hawk", "Owl"];
-
-function generateNickname() {
+// Nickname + DP generator
+function randomName() {
+  const adjectives = ["Silent", "Wild", "Happy", "Crazy", "Mysterious", "Swift"];
+  const animals = ["Dragon", "Tiger", "Panda", "Wolf", "Eagle", "Shark"];
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const animal = animals[Math.floor(Math.random() * animals.length)];
-  const number = Math.floor(Math.random() * 1000);
-  return `${adj}${animal}${number}`;
+  return adj + animal;
 }
 
-// Handle socket connections
+function randomDP(nickname) {
+  return `https://api.multiavatar.com/${nickname}.png`; // MULTIAVATAR API
+}
+
 io.on("connection", (socket) => {
-  const userNickname = generateNickname();
-  console.log(`✅ ${userNickname} connected`);
+  const nickname = randomName();
+  const avatar = randomDP(nickname);
 
-  // Send nickname to client
-  socket.emit("set nickname", userNickname);
+  socket.emit("welcome", { nickname, avatar });
 
-  // Handle chat messages
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", { user: userNickname, text: msg });
+  socket.on("joinMode", (mode, param) => {
+    if (mode === "random") {
+      socket.join("random");
+    } else if (mode === "room") {
+      socket.join(param); // param = room code
+    } else if (mode === "interest") {
+      socket.join(param); // param = interest name
+    }
+    socket.room = param || mode;
+    io.to(socket.room).emit("chat message", {
+      nickname: "System",
+      avatar: "",
+      msg: `${nickname} joined ${socket.room}`,
+    });
   });
 
-  // Handle disconnect
+  socket.on("chat message", (msg) => {
+    io.to(socket.room).emit("chat message", {
+      nickname,
+      avatar,
+      msg,
+    });
+  });
+
+  socket.on("typing", () => {
+    if (socket.room) socket.to(socket.room).emit("typing", nickname);
+  });
+
+  socket.on("stopTyping", () => {
+    if (socket.room) socket.to(socket.room).emit("stopTyping", nickname);
+  });
+
   socket.on("disconnect", () => {
-    console.log(`❌ ${userNickname} disconnected`);
+    if (socket.room) {
+      io.to(socket.room).emit("chat message", {
+        nickname: "System",
+        avatar: "",
+        msg: `${nickname} left the room.`,
+      });
+    }
   });
 });
 
-// Use Railway dynamic port
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, "0.0.0.0", () => {
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

@@ -6,27 +6,81 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>🕵️ Hideout Chat</h2>
-  <ul id="messages"></ul>
-  <form id="form">
-    <input id="input" autocomplete="off" placeholder="Type a message..." />
-    <button>Send</button>
-  </form>
+
+  <h1>🔥 Hideout Chat 🔥</h1>
+
+  <!-- Mode Selection -->
+  <div id="mode-selection">
+    <h2>Choose Chat Mode</h2>
+    <button onclick="joinMode('random')">🔀 Random Chat</button>
+    <button onclick="joinMode('room')">🔒 Room Chat</button>
+    <button onclick="joinMode('interest')">🎯 Interest-based Chat</button>
+  </div>
+
+  <!-- Chat UI -->
+  <div id="chat-container">
+    <div id="room-selection" style="display:none;">
+      <input id="room" placeholder="Enter room code">
+      <button id="join-room-btn">Join Room</button>
+    </div>
+
+    <div id="interest-selection" style="display:none;">
+      <select id="interest">
+        <option value="science">Science</option>
+        <option value="horror">Horror</option>
+        <option value="comedy">Comedy</option>
+      </select>
+      <button id="join-interest-btn">Join</button>
+    </div>
+
+    <ul id="messages"></ul>
+    <p id="typing"></p>
+
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Type a message..." /><button>Send</button>
+    </form>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let nickname = "Anonymous";
+    let nickname = "";
+    let avatar = "";
 
     const form = document.getElementById("form");
     const input = document.getElementById("input");
     const messages = document.getElementById("messages");
+    const typing = document.getElementById("typing");
 
-    // Receive nickname from server
-    socket.on("set nickname", (name) => {
-      nickname = name;
-      console.log("Your nickname:", nickname);
+    // Receive nickname & avatar
+    socket.on("welcome", (data) => {
+      nickname = data.nickname;
+      avatar = data.avatar;
     });
+
+    // Mode selection
+    function joinMode(mode) {
+      document.getElementById("mode-selection").style.display = "none";
+      document.getElementById("chat-container").style.display = "block";
+
+      if (mode === "room") {
+        document.getElementById("room-selection").style.display = "block";
+      } else if (mode === "interest") {
+        document.getElementById("interest-selection").style.display = "block";
+      } else {
+        socket.emit("joinMode", "random");
+      }
+    }
+
+    document.getElementById("join-room-btn").onclick = () => {
+      const room = document.getElementById("room").value || "room123";
+      socket.emit("joinMode", "room", room);
+    };
+
+    document.getElementById("join-interest-btn").onclick = () => {
+      const interest = document.getElementById("interest").value;
+      socket.emit("joinMode", "interest", interest);
+    };
 
     // Send message
     form.addEventListener("submit", (e) => {
@@ -34,30 +88,42 @@
       if (input.value) {
         socket.emit("chat message", input.value);
         input.value = "";
+        socket.emit("stopTyping");
       }
     });
 
-    // Display incoming messages with avatar
+    // Typing indicator
+    input.addEventListener("input", () => {
+      if (input.value) {
+        socket.emit("typing");
+      } else {
+        socket.emit("stopTyping");
+      }
+    });
+
+    // Display messages
     socket.on("chat message", (data) => {
-      const item = document.createElement("li");
+      const li = document.createElement("li");
 
-      // Create avatar image using Dicebear API
-      const avatar = document.createElement("img");
-      avatar.src = `https://avatars.dicebear.com/api/identicon/${data.user}.svg`;
-      avatar.width = 30;
-      avatar.height = 30;
-      avatar.style.marginRight = "10px";
-      avatar.style.verticalAlign = "middle";
+      if (data.avatar) {
+        const avatarImg = document.createElement("img");
+        avatarImg.src = data.avatar;
+        li.appendChild(avatarImg);
+      }
 
-      // Add message text
-      const text = document.createTextNode(`${data.user}: ${data.text}`);
+      const text = document.createTextNode(`${data.nickname}: ${data.msg}`);
+      li.appendChild(text);
+      messages.appendChild(li);
+      messages.scrollTop = messages.scrollHeight;
+    });
 
-      item.appendChild(avatar);
-      item.appendChild(text);
-      messages.appendChild(item);
+    // Typing indicator
+    socket.on("typing", (name) => {
+      typing.textContent = `${name} is typing...`;
+    });
 
-      // Scroll to bottom
-      window.scrollTo(0, document.body.scrollHeight);
+    socket.on("stopTyping", () => {
+      typing.textContent = "";
     });
   </script>
 </body>
