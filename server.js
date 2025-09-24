@@ -74,6 +74,7 @@ io.on("connection", (socket) => {
       }
     }
 
+    // Send a join message
     io.to(socket.room).emit("chat message", {
       nickname: "System",
       avatar: "",
@@ -123,7 +124,7 @@ io.on("connection", (socket) => {
         msg: `${nickname} left the room.`,
       });
       const clients = io.sockets.adapter.rooms.get(socket.room);
-      if (!clients || clients.size === 0 && socket.room.startsWith("1v1_")) {
+      if (!clients || (clients.size === 0 && socket.room.startsWith("1v1_"))) {
         oneVsOneRooms = oneVsOneRooms.filter(r => r !== socket.room);
       }
     }
