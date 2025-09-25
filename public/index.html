@@ -34,6 +34,7 @@
     </div>
     
     <div class="mode-buttons">
+      <!-- Random Chat -->
       <div class="mode-card" onclick="joinMode('random')">
         <div class="mode-icon">
           <i class="fas fa-random"></i>
@@ -44,6 +45,7 @@
         </div>
       </div>
       
+      <!-- Private Room -->
       <div class="mode-card" onclick="joinMode('room')">
         <div class="mode-icon">
           <i class="fas fa-door-open"></i>
@@ -54,6 +56,7 @@
         </div>
       </div>
       
+      <!-- Interest Based -->
       <div class="mode-card" onclick="joinMode('interest')">
         <div class="mode-icon">
           <i class="fas fa-heart"></i>
@@ -61,6 +64,17 @@
         <div class="mode-title">Interest Based</div>
         <div class="mode-description">
           Find people who share your interests. Connect based on topics you're passionate about.
+        </div>
+      </div>
+
+      <!-- 1v1 Chat -->
+      <div class="mode-card" onclick="joinMode('1v1')">
+        <div class="mode-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="mode-title">1 vs 1 Chat</div>
+        <div class="mode-description">
+          Get paired with one person for private conversation. Perfect for making new connections one-on-one.
         </div>
       </div>
     </div>
@@ -72,13 +86,13 @@
   </div>
 
   <!-- Chat Container -->
-  <div id="chat-container">
+  <div id="chat-container" style="display: none;">
     <div class="chat-header">
       <button class="back-btn" id="back-btn">
         <i class="fas fa-arrow-left"></i> Back to Menu
       </button>
       <div class="room-info">
-        <span id="room-name">Loading...</span>
+        <!-- <span id="room-name">Loading...</span>  -->
         <span class="online-count" id="online-count">
           <i class="fas fa-users"></i> <span id="user-count">0</span> online
         </span>
@@ -86,7 +100,7 @@
     </div>
 
     <!-- Join Forms -->
-    <div id="room-selection" class="join-form">
+    <div id="room-selection" class="join-form" style="display: none;">
       <div class="form-header">
         <i class="fas fa-door-open"></i>
         <h3>Join Private Room</h3>
@@ -99,7 +113,7 @@
       </div>
     </div>
 
-    <div id="interest-selection" class="join-form">
+    <div id="interest-selection" class="join-form" style="display: none;">
       <div class="form-header">
         <i class="fas fa-heart"></i>
         <h3>Choose Your Interest</h3>
@@ -147,6 +161,41 @@
     </div>
   </div>
 
+  <!-- Waiting Container for 1v1 -->
+  <div id="waiting-container" style="display: none;">
+    <div class="waiting-header">
+      <button class="back-btn" id="waiting-back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Menu
+      </button>
+      <div class="waiting-info">
+        <span id="queue-status">Looking for a partner...</span>
+      </div>
+    </div>
+  
+    <div class="waiting-content">
+      <div class="waiting-animation">
+        <div class="avatar-slideshow">
+          <div class="avatar-slide active"><img src="/avatars/avatar1.png" class="waiting-avatar"></div>
+          <div class="avatar-slide"><img src="/avatars/avatar2.png" class="waiting-avatar"></div>
+          <div class="avatar-slide"><img src="/avatars/avatar3.png" class="waiting-avatar"></div>
+          <div class="avatar-slide"><img src="/avatars/avatar4.png" class="waiting-avatar"></div>
+          <div class="avatar-slide"><img src="/avatars/avatar5.png" class="waiting-avatar"></div>
+        </div>
+        
+        <div class="waiting-text">
+          <h2>Finding your chat partner...</h2>
+          <p id="queue-message">Searching for someone to chat with</p>
+          <div class="waiting-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      
+      <div class="queue-stats">
+        <div class="stat-item"><i class="fas fa-clock"></i> Queue Position: <span id="queue-position">-</span></div>
+        <div class="stat-item"><i class="fas fa-users"></i> People waiting: <span id="people-waiting">-</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Connection Status -->
   <div class="connection-status" id="connection-status">
     <i class="fas fa-wifi"></i> Connected
@@ -155,348 +204,8 @@
   <!-- Notification Container -->
   <div class="notification-container" id="notification-container"></div>
 
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    // Create floating particles
-    function createParticles() {
-      const particlesContainer = document.querySelector('.particles-container');
-      for (let i = 0; i < 20; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 20 + 's';
-        particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
-        particlesContainer.appendChild(particle);
-      }
-    }
-
-    createParticles();
-
-    const socket = io();
-    let nickname = "";
-    let avatar = "";
-    let currentRoom = "";
-    let isTyping = false;
-
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
-    const typing = document.getElementById("typing");
-    const backBtn = document.getElementById("back-btn");
-    const userInfo = document.querySelector('.user-info');
-    const userAvatar = document.querySelector('.user-avatar');
-    const userName = document.querySelector('.user-name');
-    const roomName = document.getElementById('room-name');
-    const userCount = document.getElementById('user-count');
-    const charCount = document.getElementById('char-count');
-    const connectionStatus = document.getElementById('connection-status');
-    const sendBtn = document.getElementById('send-btn');
-
-    let typingTimer;
-    let typingUsers = new Set();
-
-    // Character counter
-    input.addEventListener('input', () => {
-      charCount.textContent = input.value.length;
-      
-      // Update send button state
-      if (input.value.trim().length > 0) {
-        sendBtn.classList.add('active');
-      } else {
-        sendBtn.classList.remove('active');
-      }
-    });
-
-    // Connection status
-    socket.on('connect', () => {
-      connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
-      connectionStatus.className = 'connection-status connected';
-    });
-
-    socket.on('disconnect', () => {
-      connectionStatus.innerHTML = '<i class="fas fa-wifi-slash"></i> Disconnected';
-      connectionStatus.className = 'connection-status disconnected';
-      showNotification('Connection lost. Attempting to reconnect...', 'error');
-    });
-
-    socket.on('reconnect', () => {
-      showNotification('Reconnected successfully!', 'success');
-    });
-
-    // Notification system
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `notification ${type}`;
-      notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
-      `;
-      
-      document.getElementById('notification-container').appendChild(notification);
-      
-      setTimeout(() => {
-        notification.classList.add('fade-out');
-        setTimeout(() => notification.remove(), 300);
-      }, 3000);
-    }
-
-    // Receive nickname & avatar
-    socket.on("welcome", (data) => {
-      nickname = data.nickname;
-      avatar = data.avatar;
-      userName.textContent = nickname;
-      userAvatar.src = data.avatar;
-      userInfo.style.display = 'flex';
-      showNotification(`Welcome, ${nickname}!`, 'success');
-    });
-
-    // Room updates
-    socket.on("roomUpdate", (data) => {
-      userCount.textContent = data.userCount;
-    });
-
-    // Mode selection with enhanced animation
-    function joinMode(mode) {
-      document.getElementById("mode-selection").style.display = "none";
-      document.getElementById("chat-container").style.display = "flex";
-
-      if (mode === "room") {
-        document.getElementById("room-selection").style.display = "block";
-        roomName.textContent = "Private Room";
-      } else if (mode === "interest") {
-        document.getElementById("interest-selection").style.display = "block";
-        roomName.textContent = "Interest Chat";
-      } else {
-        socket.emit("joinMode", "random");
-        roomName.textContent = "Random Chat";
-        currentRoom = "random";
-      }
-    }
-
-    // Back button with disconnect
-    backBtn.onclick = () => {
-      if (confirm('Are you sure you want to leave the chat?')) {
-        socket.disconnect();
-        setTimeout(() => {
-          location.reload();
-        }, 100);
-      }
-    };
-
-    // Join room with validation
-    document.getElementById("join-room-btn").onclick = () => {
-      const room = document.getElementById("room").value.trim();
-      if (!room) {
-        showNotification('Please enter a room code', 'error');
-        return;
-      }
-      if (room.length < 3) {
-        showNotification('Room code must be at least 3 characters', 'error');
-        return;
-      }
-      socket.emit("joinMode", "room", room);
-      document.getElementById("room-selection").style.display = "none";
-      roomName.textContent = `Room: ${room}`;
-      currentRoom = room;
-    };
-
-    // Join interest
-    document.getElementById("join-interest-btn").onclick = () => {
-      const interest = document.getElementById("interest").value;
-      const interestText = document.getElementById("interest").selectedOptions[0].text;
-      socket.emit("joinMode", "interest", interest);
-      document.getElementById("interest-selection").style.display = "none";
-      roomName.textContent = interestText;
-      currentRoom = interest;
-    };
-
-    // Enhanced message sending
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const message = input.value.trim();
-      if (message && message.length <= 500) {
-        socket.emit("chat message", message);
-        input.value = "";
-        charCount.textContent = "0";
-        sendBtn.classList.remove('active');
-        socket.emit("stopTyping");
-        clearTimeout(typingTimer);
-        isTyping = false;
-      }
-    });
-
-    // Enhanced typing indicator
-    input.addEventListener("input", () => {
-      if (input.value.trim() && !isTyping) {
-        socket.emit("typing");
-        isTyping = true;
-      }
-      
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => {
-        socket.emit("stopTyping");
-        isTyping = false;
-      }, 2000);
-      
-      if (!input.value.trim() && isTyping) {
-        socket.emit("stopTyping");
-        isTyping = false;
-      }
-    });
-
-    // Display enhanced messages
-    socket.on("chat message", (data) => {
-      const li = document.createElement("li");
-      
-      if (data.type === "system") {
-        li.className = "system-message";
-        li.innerHTML = `<i class="fas fa-info-circle"></i> ${data.msg}`;
-      } else {
-        li.className = "message-item";
-        
-        const avatar = document.createElement("img");
-        avatar.className = "message-avatar";
-        avatar.src = data.avatar || "/avatars/avatar1.png";
-        avatar.alt = data.nickname;
-        avatar.onerror = () => avatar.src = "/avatars/avatar1.png";
-        
-        const content = document.createElement("div");
-        content.className = "message-content";
-        
-        const header = document.createElement("div");
-        header.className = "message-header";
-        
-        const author = document.createElement("span");
-        author.className = "message-author";
-        author.textContent = data.nickname;
-        
-        const time = document.createElement("span");
-        time.className = "message-time";
-        time.textContent = new Date(data.timestamp || Date.now()).toLocaleTimeString([], {
-          hour: '2-digit', 
-          minute: '2-digit'
-        });
-        
-        const text = document.createElement("div");
-        text.className = "message-text";
-        text.textContent = data.msg;
-        
-        header.appendChild(author);
-        header.appendChild(time);
-        content.appendChild(header);
-        content.appendChild(text);
-        li.appendChild(avatar);
-        li.appendChild(content);
-      }
-      
-      messages.appendChild(li);
-      messages.scrollTop = messages.scrollHeight;
-      
-      // Add glow effect for new messages
-      li.classList.add('glow');
-      setTimeout(() => li.classList.remove('glow'), 2000);
-      
-      // Play sound effect (optional)
-      if (data.nickname !== nickname) {
-        playNotificationSound();
-      }
-    });
-
-    // Enhanced typing indicator
-    socket.on("typing", (name) => {
-      typingUsers.add(name);
-      updateTypingIndicator();
-    });
-
-    socket.on("stopTyping", (name) => {
-      typingUsers.delete(name);
-      updateTypingIndicator();
-    });
-
-    function updateTypingIndicator() {
-      if (typingUsers.size === 0) {
-        typing.innerHTML = "";
-        return;
-      }
-      
-      const names = Array.from(typingUsers);
-      let text = "";
-      
-      if (names.length === 1) {
-        text = `${names[0]} is typing`;
-      } else if (names.length === 2) {
-        text = `${names[0]} and ${names[1]} are typing`;
-      } else {
-        text = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} are typing`;
-      }
-      
-      typing.innerHTML = `
-        <div class="typing-animation">
-          <span>${text}</span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-        </div>
-      `;
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && document.getElementById('chat-container').style.display === 'flex') {
-        backBtn.click();
-      }
-    });
-
-    // Sound effects
-    function playNotificationSound() {
-      // Create a simple beep sound
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
-      } catch (e) {
-        // Sound not available
-      }
-    }
-
-    // Auto-focus input when in chat
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.target.id === 'chat-container' && mutation.target.style.display === 'flex') {
-          setTimeout(() => {
-            if (input.style.display !== 'none') {
-              input.focus();
-            }
-          }, 100);
-        }
-      });
-    });
-
-    observer.observe(document.getElementById('chat-container'), {
-      attributes: true,
-      attributeFilter: ['style']
-    });
-
-    // Heartbeat to maintain connection
-    setInterval(() => {
-      socket.emit('ping');
-    }, 30000);
-
-    socket.on('pong', () => {
-      // Connection is alive
-    });
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
