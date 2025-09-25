@@ -34,7 +34,6 @@
     </div>
     
     <div class="mode-buttons">
-      <!-- Random Chat -->
       <div class="mode-card" onclick="joinMode('random')">
         <div class="mode-icon">
           <i class="fas fa-random"></i>
@@ -45,7 +44,6 @@
         </div>
       </div>
       
-      <!-- Private Room -->
       <div class="mode-card" onclick="joinMode('room')">
         <div class="mode-icon">
           <i class="fas fa-door-open"></i>
@@ -56,7 +54,6 @@
         </div>
       </div>
       
-      <!-- Interest Based -->
       <div class="mode-card" onclick="joinMode('interest')">
         <div class="mode-icon">
           <i class="fas fa-heart"></i>
@@ -67,7 +64,6 @@
         </div>
       </div>
 
-      <!-- 1v1 Chat -->
       <div class="mode-card" onclick="joinMode('1v1')">
         <div class="mode-icon">
           <i class="fas fa-users"></i>
@@ -85,14 +81,69 @@
     </div>
   </div>
 
+  <!-- Waiting Screen for 1v1 Mode -->
+  <div id="waiting-container" style="display: none;">
+    <div class="waiting-header">
+      <button class="back-btn" id="waiting-back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Menu
+      </button>
+      <div class="waiting-info">
+        <span id="queue-status">Looking for a partner...</span>
+      </div>
+    </div>
+    
+    <div class="waiting-content">
+      <div class="waiting-animation">
+        <div class="avatar-slideshow">
+          <div class="avatar-slide active">
+            <img src="/avatars/avatar1.png" alt="Avatar" class="waiting-avatar">
+          </div>
+          <div class="avatar-slide">
+            <img src="/avatars/avatar2.png" alt="Avatar" class="waiting-avatar">
+          </div>
+          <div class="avatar-slide">
+            <img src="/avatars/avatar3.png" alt="Avatar" class="waiting-avatar">
+          </div>
+          <div class="avatar-slide">
+            <img src="/avatars/avatar4.png" alt="Avatar" class="waiting-avatar">
+          </div>
+          <div class="avatar-slide">
+            <img src="/avatars/avatar5.png" alt="Avatar" class="waiting-avatar">
+          </div>
+        </div>
+        
+        <div class="waiting-text">
+          <h2>Finding your chat partner...</h2>
+          <p id="queue-message">Searching for someone to chat with</p>
+          <div class="waiting-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="queue-stats">
+        <div class="stat-item">
+          <i class="fas fa-clock"></i>
+          <span>Queue Position: <span id="queue-position">-</span></span>
+        </div>
+        <div class="stat-item">
+          <i class="fas fa-users"></i>
+          <span>People waiting: <span id="people-waiting">-</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Chat Container -->
-  <div id="chat-container" style="display: none;">
+  <div id="chat-container">
     <div class="chat-header">
       <button class="back-btn" id="back-btn">
         <i class="fas fa-arrow-left"></i> Back to Menu
       </button>
       <div class="room-info">
-        <!-- <span id="room-name">Loading...</span>  -->
+        <span id="room-name">Loading...</span>
         <span class="online-count" id="online-count">
           <i class="fas fa-users"></i> <span id="user-count">0</span> online
         </span>
@@ -100,7 +151,7 @@
     </div>
 
     <!-- Join Forms -->
-    <div id="room-selection" class="join-form" style="display: none;">
+    <div id="room-selection" class="join-form">
       <div class="form-header">
         <i class="fas fa-door-open"></i>
         <h3>Join Private Room</h3>
@@ -113,7 +164,7 @@
       </div>
     </div>
 
-    <div id="interest-selection" class="join-form" style="display: none;">
+    <div id="interest-selection" class="join-form">
       <div class="form-header">
         <i class="fas fa-heart"></i>
         <h3>Choose Your Interest</h3>
@@ -158,41 +209,6 @@
           <i class="fas fa-paper-plane"></i>
         </button>
       </form>
-    </div>
-  </div>
-
-  <!-- Waiting Container for 1v1 -->
-  <div id="waiting-container" style="display: none;">
-    <div class="waiting-header">
-      <button class="back-btn" id="waiting-back-btn">
-        <i class="fas fa-arrow-left"></i> Back to Menu
-      </button>
-      <div class="waiting-info">
-        <span id="queue-status">Looking for a partner...</span>
-      </div>
-    </div>
-  
-    <div class="waiting-content">
-      <div class="waiting-animation">
-        <div class="avatar-slideshow">
-          <div class="avatar-slide active"><img src="/avatars/avatar1.png" class="waiting-avatar"></div>
-          <div class="avatar-slide"><img src="/avatars/avatar2.png" class="waiting-avatar"></div>
-          <div class="avatar-slide"><img src="/avatars/avatar3.png" class="waiting-avatar"></div>
-          <div class="avatar-slide"><img src="/avatars/avatar4.png" class="waiting-avatar"></div>
-          <div class="avatar-slide"><img src="/avatars/avatar5.png" class="waiting-avatar"></div>
-        </div>
-        
-        <div class="waiting-text">
-          <h2>Finding your chat partner...</h2>
-          <p id="queue-message">Searching for someone to chat with</p>
-          <div class="waiting-dots"><span></span><span></span><span></span></div>
-        </div>
-      </div>
-      
-      <div class="queue-stats">
-        <div class="stat-item"><i class="fas fa-clock"></i> Queue Position: <span id="queue-position">-</span></div>
-        <div class="stat-item"><i class="fas fa-users"></i> People waiting: <span id="people-waiting">-</span></div>
-      </div>
     </div>
   </div>
 
