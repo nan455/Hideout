@@ -1,9 +1,11 @@
-// Complete app.js for Hideout Chat - All Modes
+// Complete app.js for Hideout Chat - All Modes with Responsive Design
 // Place this in /public/app.js and include it in your index.html
 
 // Create floating particles
 function createParticles() {
     const particlesContainer = document.querySelector('.particles-container');
+    if (!particlesContainer) return;
+    
     for (let i = 0; i < 20; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
@@ -53,19 +55,24 @@ function createParticles() {
   // ===== UTILITY FUNCTIONS =====
   
   // Character counter
-  input.addEventListener('input', () => {
-    charCount.textContent = input.value.length;
-    
-    // Update send button state
-    if (input.value.trim().length > 0) {
-      sendBtn.classList.add('active');
-    } else {
-      sendBtn.classList.remove('active');
-    }
-  });
+  if (input && charCount) {
+    input.addEventListener('input', () => {
+      charCount.textContent = input.value.length;
+      
+      // Update send button state
+      if (input.value.trim().length > 0) {
+        sendBtn.classList.add('active');
+      } else {
+        sendBtn.classList.remove('active');
+      }
+    });
+  }
   
   // Notification system
   function showNotification(message, type = 'info') {
+    const notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) return;
+    
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
@@ -73,7 +80,7 @@ function createParticles() {
       <span>${message}</span>
     `;
     
-    document.getElementById('notification-container').appendChild(notification);
+    notificationContainer.appendChild(notification);
     
     setTimeout(() => {
       notification.classList.add('fade-out');
@@ -107,13 +114,17 @@ function createParticles() {
   // ===== CONNECTION HANDLERS =====
   
   socket.on('connect', () => {
-    connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
-    connectionStatus.className = 'connection-status connected';
+    if (connectionStatus) {
+      connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+      connectionStatus.className = 'connection-status connected';
+    }
   });
   
   socket.on('disconnect', () => {
-    connectionStatus.innerHTML = '<i class="fas fa-wifi-slash"></i> Disconnected';
-    connectionStatus.className = 'connection-status disconnected';
+    if (connectionStatus) {
+      connectionStatus.innerHTML = '<i class="fas fa-wifi-slash"></i> Disconnected';
+      connectionStatus.className = 'connection-status disconnected';
+    }
     showNotification('Connection lost. Attempting to reconnect...', 'error');
   });
   
@@ -125,36 +136,87 @@ function createParticles() {
   socket.on("welcome", (data) => {
     nickname = data.nickname;
     avatar = data.avatar;
-    userName.textContent = nickname;
-    userAvatar.src = data.avatar;
-    userInfo.style.display = 'flex';
+    if (userName) userName.textContent = nickname;
+    if (userAvatar) userAvatar.src = data.avatar;
+    if (userInfo) userInfo.style.display = 'flex';
     showNotification(`Welcome, ${nickname}!`, 'success');
   });
+  
+  // ===== UTILITY FUNCTIONS FOR FORM HANDLING =====
+  
+  function resetChatContainer() {
+    // Hide all forms
+    const roomSelection = document.getElementById("room-selection");
+    const interestSelection = document.getElementById("interest-selection");
+    const chatContainer = document.getElementById("chat-container");
+    
+    if (roomSelection) roomSelection.style.display = "none";
+    if (interestSelection) interestSelection.style.display = "none";
+    
+    // Remove form class
+    if (chatContainer) chatContainer.classList.remove("show-form");
+    
+    // Clear input values
+    const roomInput = document.getElementById("room");
+    const interestSelect = document.getElementById("interest");
+    if (roomInput) roomInput.value = "";
+    if (interestSelect) interestSelect.selectedIndex = 0;
+    
+    // Clear messages
+    if (messages) messages.innerHTML = "";
+    
+    // Reset room info
+    currentRoom = "";
+    currentPartner = null;
+  }
+  
+  function focusInputWhenReady() {
+    const chatContainer = document.getElementById("chat-container");
+    const isFormVisible = chatContainer && chatContainer.classList.contains("show-form");
+    
+    if (!isFormVisible && chatContainer && chatContainer.style.display === "flex" && input) {
+      setTimeout(() => {
+        input.focus();
+      }, 100);
+    }
+  }
   
   // ===== MODE SELECTION =====
   
   function joinMode(mode) {
-    document.getElementById("mode-selection").style.display = "none";
+    const modeSelection = document.getElementById("mode-selection");
+    const chatContainer = document.getElementById("chat-container");
+    
+    if (modeSelection) modeSelection.style.display = "none";
   
     if (mode === "1v1") {
-      // Handle 1v1 mode
+      // Handle 1v1 mode - show waiting screen
       showWaitingScreen();
       socket.emit("join1v1");
     } else {
       // Handle all other existing modes (random, room, interest)
-      document.getElementById("chat-container").style.display = "flex";
-      backBtn.style.display = "inline-block";
+      if (chatContainer) chatContainer.style.display = "flex";
+      if (backBtn) backBtn.style.display = "inline-block";
   
       if (mode === "room") {
-        document.getElementById("room-selection").style.display = "block";
-        roomName.textContent = "Private Room";
+        // Show room form and hide message containers
+        chatContainer.classList.add("show-form");
+        const roomSelection = document.getElementById("room-selection");
+        if (roomSelection) roomSelection.style.display = "block";
+        if (roomName) roomName.textContent = "Private Room";
       } else if (mode === "interest") {
-        document.getElementById("interest-selection").style.display = "block";
-        roomName.textContent = "Interest Chat";
+        // Show interest form and hide message containers
+        chatContainer.classList.add("show-form");
+        const interestSelection = document.getElementById("interest-selection");
+        if (interestSelection) interestSelection.style.display = "block";
+        if (roomName) roomName.textContent = "Interest Chat";
       } else if (mode === "random") {
+        // Random mode - join immediately, show chat
+        chatContainer.classList.remove("show-form");
         socket.emit("joinMode", "random");
-        roomName.textContent = "Random Chat";
+        if (roomName) roomName.textContent = "Random Chat";
         currentRoom = "random";
+        focusInputWhenReady();
       }
     }
   }
@@ -162,19 +224,27 @@ function createParticles() {
   // ===== 1V1 MODE FUNCTIONS =====
   
   function showWaitingScreen() {
-    document.getElementById("waiting-container").style.display = "flex";
-    startAvatarSlideshow();
-    startWaitingAnimation();
+    const waitingContainer = document.getElementById("waiting-container");
+    if (waitingContainer) {
+      waitingContainer.style.display = "flex";
+      startAvatarSlideshow();
+      startWaitingAnimation();
+    }
   }
   
   function hideWaitingScreen() {
-    document.getElementById("waiting-container").style.display = "none";
-    stopAvatarSlideshow();
-    stopWaitingAnimation();
+    const waitingContainer = document.getElementById("waiting-container");
+    if (waitingContainer) {
+      waitingContainer.style.display = "none";
+      stopAvatarSlideshow();
+      stopWaitingAnimation();
+    }
   }
   
   function startAvatarSlideshow() {
     const slides = document.querySelectorAll('.avatar-slide');
+    if (slides.length === 0) return;
+    
     let currentSlide = 0;
     
     slideInterval = setInterval(() => {
@@ -202,6 +272,8 @@ function createParticles() {
     let messageIndex = 0;
     const messageElement = document.getElementById('queue-message');
     
+    if (!messageElement) return;
+    
     waitingInterval = setInterval(() => {
       messageElement.textContent = messages[messageIndex];
       messageIndex = (messageIndex + 1) % messages.length;
@@ -217,107 +289,170 @@ function createParticles() {
   // ===== ROOM JOINING HANDLERS =====
   
   // Join room with validation
-  document.getElementById("join-room-btn").onclick = () => {
-    const room = document.getElementById("room").value.trim();
-    if (!room) {
-      showNotification('Please enter a room code', 'error');
-      return;
-    }
-    if (room.length < 3) {
-      showNotification('Room code must be at least 3 characters', 'error');
-      return;
-    }
-    socket.emit("joinMode", "room", room);
-    document.getElementById("room-selection").style.display = "none";
-    roomName.textContent = `Room: ${room}`;
-    currentRoom = room;
-  };
+  const joinRoomBtn = document.getElementById("join-room-btn");
+  if (joinRoomBtn) {
+    joinRoomBtn.onclick = () => {
+      const roomInput = document.getElementById("room");
+      const room = roomInput ? roomInput.value.trim() : "";
+      
+      if (!room) {
+        showNotification('Please enter a room code', 'error');
+        return;
+      }
+      if (room.length < 3) {
+        showNotification('Room code must be at least 3 characters', 'error');
+        return;
+      }
+      
+      // Hide the form and show chat interface
+      const roomSelection = document.getElementById("room-selection");
+      const chatContainer = document.getElementById("chat-container");
+      
+      if (roomSelection) roomSelection.style.display = "none";
+      if (chatContainer) chatContainer.classList.remove("show-form");
+      
+      // Join the room
+      socket.emit("joinMode", "room", room);
+      if (roomName) roomName.textContent = `Room: ${room}`;
+      currentRoom = room;
+      
+      // Clear previous messages
+      if (messages) messages.innerHTML = "";
+      
+      showNotification(`Joined room: ${room}`, 'success');
+      focusInputWhenReady();
+    };
+  }
   
   // Join interest
-  document.getElementById("join-interest-btn").onclick = () => {
-    const interest = document.getElementById("interest").value;
-    const interestText = document.getElementById("interest").selectedOptions[0].text;
-    socket.emit("joinMode", "interest", interest);
-    document.getElementById("interest-selection").style.display = "none";
-    roomName.textContent = interestText;
-    currentRoom = interest;
-  };
+  const joinInterestBtn = document.getElementById("join-interest-btn");
+  if (joinInterestBtn) {
+    joinInterestBtn.onclick = () => {
+      const interestSelect = document.getElementById("interest");
+      if (!interestSelect) return;
+      
+      const interest = interestSelect.value;
+      const interestText = interestSelect.selectedOptions[0].text;
+      
+      // Hide the form and show chat interface
+      const interestSelection = document.getElementById("interest-selection");
+      const chatContainer = document.getElementById("chat-container");
+      
+      if (interestSelection) interestSelection.style.display = "none";
+      if (chatContainer) chatContainer.classList.remove("show-form");
+      
+      // Join the interest room
+      socket.emit("joinMode", "interest", interest);
+      if (roomName) roomName.textContent = interestText;
+      currentRoom = interest;
+      
+      // Clear previous messages
+      if (messages) messages.innerHTML = "";
+      
+      showNotification(`Joined ${interestText}`, 'success');
+      focusInputWhenReady();
+    };
+  }
   
   // ===== BACK BUTTON HANDLERS =====
   
   // Main chat back button
-  backBtn.onclick = () => {
-    const message = currentPartner 
-      ? 'Are you sure you want to leave this 1v1 chat?' 
-      : 'Are you sure you want to leave the chat?';
+  if (backBtn) {
+    backBtn.onclick = () => {
+      const chatContainer = document.getElementById("chat-container");
+      const isInForm = chatContainer && chatContainer.classList.contains("show-form");
       
-    if (confirm(message)) {
-      if (currentPartner) {
-        socket.emit("leave1v1");
-        currentPartner = null;
+      if (isInForm) {
+        // If in form, just go back to mode selection without confirmation
+        resetChatContainer();
+        if (chatContainer) chatContainer.style.display = "none";
+        const modeSelection = document.getElementById("mode-selection");
+        if (modeSelection) modeSelection.style.display = "block";
+      } else {
+        // If in chat, ask for confirmation
+        const message = currentPartner 
+          ? 'Are you sure you want to leave this 1v1 chat?' 
+          : 'Are you sure you want to leave the chat?';
+          
+        if (confirm(message)) {
+          if (currentPartner) {
+            socket.emit("leave1v1");
+          }
+          
+          resetChatContainer();
+          socket.disconnect();
+          setTimeout(() => {
+            location.reload();
+          }, 100);
+        }
       }
-      
-      socket.disconnect();
-      setTimeout(() => {
-        location.reload();
-      }, 100);
-    }
-  };
+    };
+  }
   
   // Waiting screen back button
-  document.getElementById("waiting-back-btn").onclick = () => {
-    if (confirm('Are you sure you want to stop looking for a chat partner?')) {
-      socket.emit("leave1v1");
-      hideWaitingScreen();
-      document.getElementById("mode-selection").style.display = "block";
-    }
-  };
+  const waitingBackBtn = document.getElementById("waiting-back-btn");
+  if (waitingBackBtn) {
+    waitingBackBtn.onclick = () => {
+      if (confirm('Are you sure you want to stop looking for a chat partner?')) {
+        socket.emit("leave1v1");
+        hideWaitingScreen();
+        const modeSelection = document.getElementById("mode-selection");
+        if (modeSelection) modeSelection.style.display = "block";
+      }
+    };
+  }
   
   // ===== MESSAGE HANDLING =====
   
   // Enhanced message sending
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const message = input.value.trim();
-    if (message && message.length <= 500) {
-      socket.emit("chat message", message);
-      input.value = "";
-      charCount.textContent = "0";
-      sendBtn.classList.remove('active');
-      socket.emit("stopTyping");
-      clearTimeout(typingTimer);
-      isTyping = false;
-    }
-  });
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const message = input ? input.value.trim() : "";
+      if (message && message.length <= 500) {
+        socket.emit("chat message", message);
+        if (input) input.value = "";
+        if (charCount) charCount.textContent = "0";
+        if (sendBtn) sendBtn.classList.remove('active');
+        socket.emit("stopTyping");
+        clearTimeout(typingTimer);
+        isTyping = false;
+      }
+    });
+  }
   
   // Enhanced typing indicator
-  input.addEventListener("input", () => {
-    if (input.value.trim() && !isTyping) {
-      socket.emit("typing");
-      isTyping = true;
-    }
-    
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      socket.emit("stopTyping");
-      isTyping = false;
-    }, 2000);
-    
-    if (!input.value.trim() && isTyping) {
-      socket.emit("stopTyping");
-      isTyping = false;
-    }
-  });
+  if (input) {
+    input.addEventListener("input", () => {
+      if (input.value.trim() && !isTyping) {
+        socket.emit("typing");
+        isTyping = true;
+      }
+      
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        socket.emit("stopTyping");
+        isTyping = false;
+      }, 2000);
+      
+      if (!input.value.trim() && isTyping) {
+        socket.emit("stopTyping");
+        isTyping = false;
+      }
+    });
+  }
   
   // ===== SOCKET EVENT LISTENERS =====
   
   // Room updates
   socket.on("roomUpdate", (data) => {
-    userCount.textContent = data.userCount;
+    if (userCount) userCount.textContent = data.userCount;
   });
   
   // Display enhanced messages
   socket.on("chat message", (data) => {
+    if (!messages) return;
+    
     const li = document.createElement("li");
     
     if (data.type === "system") {
@@ -386,6 +521,8 @@ function createParticles() {
   });
   
   function updateTypingIndicator() {
+    if (!typing) return;
+    
     if (typingUsers.size === 0) {
       typing.innerHTML = "";
       return;
@@ -415,52 +552,116 @@ function createParticles() {
   // ===== 1V1 MODE SOCKET EVENTS =====
   
   socket.on("queueStatus", (data) => {
-    document.getElementById("queue-position").textContent = data.position;
-    document.getElementById("queue-status").textContent = data.message;
-    document.getElementById("people-waiting").textContent = data.position;
+    const queuePosition = document.getElementById("queue-position");
+    const queueStatus = document.getElementById("queue-status");
+    const peopleWaiting = document.getElementById("people-waiting");
+    
+    if (queuePosition) queuePosition.textContent = data.position;
+    if (queueStatus) queueStatus.textContent = data.message;
+    if (peopleWaiting) peopleWaiting.textContent = data.position;
   });
   
   socket.on("matched", (data) => {
     currentPartner = data;
     hideWaitingScreen();
     
-    // Show chat container
-    document.getElementById("chat-container").style.display = "flex";
-    roomName.textContent = `1v1 with ${data.partnerName}`;
+    // Show chat container without form class
+    const chatContainer = document.getElementById("chat-container");
+    if (chatContainer) {
+      chatContainer.style.display = "flex";
+      chatContainer.classList.remove("show-form");
+    }
+    if (roomName) roomName.textContent = `1v1 with ${data.partnerName}`;
     currentRoom = data.roomId;
     
     // Clear previous messages
-    messages.innerHTML = "";
+    if (messages) messages.innerHTML = "";
     
     showNotification(`You've been matched with ${data.partnerName}!`, 'success');
+    
+    // Focus on input after a short delay
+    setTimeout(() => {
+      if (input) input.focus();
+    }, 300);
   });
   
   socket.on("partnerDisconnected", (data) => {
     showNotification(`${data.partnerName} has disconnected. Finding you a new partner...`, 'info');
     
     // Hide chat and show waiting screen again
-    document.getElementById("chat-container").style.display = "none";
+    const chatContainer = document.getElementById("chat-container");
+    if (chatContainer) chatContainer.style.display = "none";
     showWaitingScreen();
     currentPartner = null;
     currentRoom = "";
   });
   
-  // ===== KEYBOARD SHORTCUTS =====
+  // ===== KEYBOARD SHORTCUTS AND NAVIGATION =====
   
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('chat-container').style.display === 'flex') {
-      backBtn.click();
+    // Escape key handling
+    if (e.key === 'Escape') {
+      const chatContainer = document.getElementById("chat-container");
+      const waitingContainer = document.getElementById("waiting-container");
+      
+      const isInForm = chatContainer && chatContainer.classList.contains("show-form");
+      const isInWaiting = waitingContainer && waitingContainer.style.display === "flex";
+      const isInChat = chatContainer && chatContainer.style.display === "flex" && !isInForm;
+      
+      if (isInForm) {
+        // Go back to mode selection from forms
+        resetChatContainer();
+        if (chatContainer) chatContainer.style.display = "none";
+        const modeSelection = document.getElementById("mode-selection");
+        if (modeSelection) modeSelection.style.display = "block";
+      } else if (isInWaiting && waitingBackBtn) {
+        // Go back from waiting screen
+        waitingBackBtn.click();
+      } else if (isInChat && backBtn) {
+        // Go back from chat
+        backBtn.click();
+      }
+    }
+    
+    // Enter key for forms
+    if (e.key === 'Enter') {
+      const roomInput = document.getElementById("room");
+      
+      if (document.activeElement === roomInput && roomInput && roomInput.value.trim()) {
+        const joinRoomBtn = document.getElementById("join-room-btn");
+        if (joinRoomBtn) joinRoomBtn.click();
+      }
     }
   });
+  
+  // ===== INPUT VALIDATION =====
+  
+  // Enhanced room input validation
+  const roomInput = document.getElementById("room");
+  if (roomInput && joinRoomBtn) {
+    roomInput.addEventListener('input', (e) => {
+      const value = e.target.value;
+      
+      if (value.trim().length >= 3) {
+        joinRoomBtn.disabled = false;
+        joinRoomBtn.style.opacity = "1";
+      } else {
+        joinRoomBtn.disabled = true;
+        joinRoomBtn.style.opacity = "0.6";
+      }
+    });
+  }
   
   // ===== AUTO-FOCUS AND OBSERVERS =====
   
   // Auto-focus input when in chat
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      if (mutation.target.id === 'chat-container' && mutation.target.style.display === 'flex') {
+      if (mutation.target.id === 'chat-container' && 
+          mutation.target.style.display === 'flex' &&
+          !mutation.target.classList.contains('show-form')) {
         setTimeout(() => {
-          if (input.style.display !== 'none') {
+          if (input && input.style.display !== 'none') {
             input.focus();
           }
         }, 100);
@@ -468,10 +669,13 @@ function createParticles() {
     });
   });
   
-  observer.observe(document.getElementById('chat-container'), {
-    attributes: true,
-    attributeFilter: ['style']
-  });
+  const chatContainer = document.getElementById('chat-container');
+  if (chatContainer) {
+    observer.observe(chatContainer, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+  }
   
   // ===== HEARTBEAT =====
   
@@ -498,5 +702,90 @@ function createParticles() {
   
   // ===== INITIALIZATION =====
   
+  // Initialize button states on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const joinRoomBtn = document.getElementById("join-room-btn");
+    if (joinRoomBtn) {
+      joinRoomBtn.disabled = true;
+      joinRoomBtn.style.opacity = "0.6";
+    }
+  });
+  
+  // Mobile viewport height fix
+  function setVH() {
+    let vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+  
+  // Set initial viewport height
+  setVH();
+  
+  // Update on resize
+  window.addEventListener('resize', setVH);
+  
+  // Prevent zoom on double tap for iOS
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, false);
+  
+  // Service Worker registration (optional for PWA capabilities)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Uncomment the next lines if you want to add PWA support
+      // navigator.serviceWorker.register('/sw.js')
+      //   .then((registration) => console.log('SW registered'))
+      //   .catch((registrationError) => console.log('SW registration failed'));
+    });
+  }
+  
+  // ===== ACCESSIBILITY ENHANCEMENTS =====
+  
+  // Skip to main content link
+  const skipLink = document.querySelector('.skip-link');
+  if (skipLink) {
+    skipLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.querySelector('#main-content') || document.querySelector('#messages');
+      if (target) {
+        target.focus();
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+  
+  // Announce important changes to screen readers
+  function announceToScreenReader(message) {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.setAttribute('aria-atomic', 'true');
+    announcement.className = 'sr-only';
+    announcement.textContent = message;
+    
+    document.body.appendChild(announcement);
+    
+    setTimeout(() => {
+      document.body.removeChild(announcement);
+    }, 1000);
+  }
+  
+  // Use announcements for important state changes
+  socket.on("matched", (data) => {
+    announceToScreenReader(`You have been matched with ${data.partnerName} for a 1 on 1 chat`);
+  });
+  
+  socket.on("chat message", (data) => {
+    if (data.type === "system") {
+      announceToScreenReader(data.msg);
+    }
+  });
+  
   console.log('🚀 Hideout Chat App initialized');
   console.log('📱 All chat modes ready: Random, Room, Interest, 1v1');
+  console.log('♿ Accessibility features enabled');
+  console.log('📐 Responsive design active');
+  console.log('🔧 Form handling optimized');
