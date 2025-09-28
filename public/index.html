@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Floating particles -->
   <div class="particles-container"></div>
 
   <!-- Age Verification Modal -->
@@ -49,10 +48,10 @@
           <div class="captcha-question" id="captcha-question">
             Loading...
           </div>
-          <div class="captcha-input-group">
+          <div class="captcha-input-section">
             <input type="number" id="captcha-answer" placeholder="Your answer" autocomplete="off" />
-            <button class="captcha-submit" onclick="submitCaptcha()">
-              <i class="fas fa-check"></i>
+            <button class="verify-btn" onclick="submitCaptcha()">
+              <i class="fas fa-check"></i> Verify
             </button>
           </div>
         </div>
@@ -88,7 +87,6 @@
 
   <!-- Main App Content -->
   <div id="main-app" style="display: none;">
-    <!-- Header -->
     <div class="header">
       <div class="logo">
         <i class="fas fa-comments"></i>
@@ -163,7 +161,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="footer">
         <p>Made with <i class="fas fa-heart"></i> for connecting adults worldwide</p>
         <div class="footer-links">
@@ -182,6 +179,9 @@
         </button>
         <div class="waiting-info">
           <span id="queue-status">Looking for a partner...</span>
+          <button class="skip-btn" id="skip-btn" style="display: none;" onclick="skipPartner()">
+            <i class="fas fa-forward"></i> Skip
+          </button>
         </div>
       </div>
       
@@ -230,34 +230,37 @@
     </div>
 
     <!-- Chat Container -->
-    <div id="chat-container">
+    <div id="chat-container" style="display: none;">
       <div class="chat-header">
         <button class="back-btn" id="back-btn">
           <i class="fas fa-arrow-left"></i> Back to Menu
         </button>
         <div class="room-info">
           <span id="room-name">Loading...</span>
-          <span class="online-count" id="online-count">
+          <span class="online-count" id="online-count-room">
             <i class="fas fa-users"></i> <span id="user-count">0</span> online
           </span>
+          <button class="skip-chat-btn" id="skip-chat-btn" style="display: none;" onclick="skipPartner()">
+            <i class="fas fa-forward"></i> Next
+          </button>
         </div>
       </div>
 
       <!-- Join Forms -->
-      <div id="room-selection" class="join-form">
+      <div id="room-selection" class="join-form" style="display: none;">
         <div class="form-header">
           <i class="fas fa-door-open"></i>
           <h3>Join Private Room</h3>
         </div>
         <div class="form-content">
           <input id="room" placeholder="Enter room code (e.g., party2024)" maxlength="20">
-          <button class="join-btn" id="join-room-btn">
+          <button class="join-btn" id="join-room-btn" disabled>
             <i class="fas fa-sign-in-alt"></i> Join Room
           </button>
         </div>
       </div>
 
-      <div id="interest-selection" class="join-form">
+      <div id="interest-selection" class="join-form" style="display: none;">
         <div class="form-header">
           <i class="fas fa-heart"></i>
           <h3>Choose Your Interest</h3>
@@ -285,14 +288,14 @@
         </div>
       </div>
 
-      <!-- Messages -->
-      <div class="messages-container">
+      <!-- Messages Container -->
+      <div class="messages-container" id="messages-container" style="display: none;">
         <ul id="messages"></ul>
         <div id="typing"></div>
       </div>
 
       <!-- Message Input -->
-      <div class="message-input-container">
+      <div class="message-input-container" id="message-input-container" style="display: none;">
         <form id="form">
           <div class="input-wrapper">
             <input id="input" autocomplete="off" placeholder="Type your message..." maxlength="500" />
@@ -316,15 +319,6 @@
   <!-- Notification Container -->
   <div class="notification-container" id="notification-container"></div>
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay" style="display: none;">
-    <div class="loading-spinner">
-      <div class="spinner"></div>
-      <p>Connecting...</p>
-    </div>
-  </div>
-
-  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     // Global variables
@@ -337,6 +331,7 @@
     let waitingInterval;
     let slideInterval;
     let currentCaptcha = null;
+    let canSkip = false;
 
     // DOM elements
     const form = document.getElementById("form");
@@ -352,6 +347,10 @@
     const charCount = document.getElementById('char-count');
     const connectionStatus = document.getElementById('connection-status');
     const sendBtn = document.getElementById('send-btn');
+    const messagesContainer = document.getElementById('messages-container');
+    const messageInputContainer = document.getElementById('message-input-container');
+    const skipBtn = document.getElementById('skip-btn');
+    const skipChatBtn = document.getElementById('skip-chat-btn');
 
     let typingTimer;
     let typingUsers = new Set();
@@ -360,19 +359,16 @@
     
     function confirmAge(isAdult) {
       if (isAdult) {
-        // Store age verification in localStorage for 24 hours
         const verification = {
           verified: true,
           timestamp: Date.now(),
-          expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          expires: Date.now() + (24 * 60 * 60 * 1000)
         };
         localStorage.setItem('ageVerified', JSON.stringify(verification));
         
-        // Hide age verification and show captcha
         document.getElementById('age-verification-modal').style.display = 'none';
         showCaptchaVerification();
       } else {
-        // Show underage restriction
         document.getElementById('age-verification-modal').style.display = 'none';
         document.getElementById('underage-restriction').style.display = 'flex';
       }
@@ -384,18 +380,15 @@
         try {
           const verification = JSON.parse(stored);
           if (verification.verified && Date.now() < verification.expires) {
-            // Already verified and not expired, show captcha
             document.getElementById('age-verification-modal').style.display = 'none';
             showCaptchaVerification();
             return true;
           }
         } catch (e) {
-          // Invalid stored data, clear it
           localStorage.removeItem('ageVerified');
         }
       }
       
-      // Show age verification modal
       document.getElementById('age-verification-modal').style.display = 'flex';
       return false;
     }
@@ -417,7 +410,6 @@
         document.getElementById('captcha-answer').value = '';
         document.getElementById('captcha-error').style.display = 'none';
         
-        // Focus on input
         document.getElementById('captcha-answer').focus();
       } catch (error) {
         console.error('Failed to generate captcha:', error);
@@ -454,7 +446,6 @@
         const result = await response.json();
         
         if (result.success) {
-          // Captcha verified successfully
           document.getElementById('captcha-modal').style.display = 'none';
           initializeApp();
         } else {
@@ -472,13 +463,11 @@
       errorDiv.textContent = message;
       errorDiv.style.display = 'block';
       
-      // Shake the captcha container
       const container = document.querySelector('.captcha-container');
       container.classList.add('shake');
       setTimeout(() => container.classList.remove('shake'), 600);
     }
 
-    // Handle Enter key in captcha input
     document.getElementById('captcha-answer').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         submitCaptcha();
@@ -488,18 +477,10 @@
     // ===== APP INITIALIZATION =====
     
     function initializeApp() {
-      // Show main app
       document.getElementById('main-app').style.display = 'block';
-      
-      // Initialize particles
       createParticles();
-      
-      // Initialize socket connection
       initializeSocket();
-      
-      // Load server stats
       loadServerStats();
-      
       console.log('🚀 Hideout Chat App initialized');
     }
 
@@ -538,7 +519,6 @@
         rememberUpgrade: true
       });
 
-      // Connection handlers
       socket.on('connect', () => {
         connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
         connectionStatus.className = 'connection-status connected';
@@ -554,7 +534,6 @@
         showNotification('Reconnected successfully!', 'success');
       });
 
-      // Welcome event
       socket.on("welcome", (data) => {
         nickname = data.nickname;
         avatar = data.avatar;
@@ -564,17 +543,14 @@
         showNotification(`Welcome, ${nickname}!`, 'success');
       });
 
-      // Room updates
       socket.on("roomUpdate", (data) => {
         userCount.textContent = data.userCount;
       });
 
-      // Message handling
       socket.on("chat message", (data) => {
         displayMessage(data);
       });
 
-      // Typing indicators
       socket.on("typing", (name) => {
         typingUsers.add(name);
         updateTypingIndicator();
@@ -590,16 +566,23 @@
         document.getElementById("queue-position").textContent = data.position;
         document.getElementById("queue-status").textContent = data.message;
         document.getElementById("people-waiting").textContent = data.position;
+        
+        canSkip = data.canSkip;
+        if (canSkip && data.position === 1) {
+          skipBtn.style.display = 'inline-block';
+        } else {
+          skipBtn.style.display = 'none';
+        }
       });
 
       socket.on("matched", (data) => {
         currentPartner = data;
         hideWaitingScreen();
+        showChatInterface();
         
-        document.getElementById("chat-container").style.display = "flex";
-        document.getElementById("chat-container").classList.remove("show-form");
         roomName.textContent = `1v1 with ${data.partnerName}`;
         currentRoom = data.roomId;
+        skipChatBtn.style.display = 'inline-block';
         
         messages.innerHTML = "";
         showNotification(`You've been matched with ${data.partnerName}!`, 'success');
@@ -611,14 +594,22 @@
 
       socket.on("partnerDisconnected", (data) => {
         showNotification(`${data.partnerName} has disconnected. Finding you a new partner...`, 'info');
-        
-        document.getElementById("chat-container").style.display = "none";
+        hideChatInterface();
         showWaitingScreen();
         currentPartner = null;
         currentRoom = "";
+        skipChatBtn.style.display = 'none';
       });
 
-      // Rate limiting
+      socket.on("partnerSkipped", (data) => {
+        showNotification(data.message, 'info');
+        hideChatInterface();
+        showWaitingScreen();
+        currentPartner = null;
+        currentRoom = "";
+        skipChatBtn.style.display = 'none';
+      });
+
       socket.on('rate_limit', (message) => {
         showNotification(message, 'warning');
         
@@ -644,6 +635,21 @@
 
     // ===== UTILITY FUNCTIONS =====
     
+    function showChatInterface() {
+      document.getElementById("chat-container").style.display = "flex";
+      messagesContainer.style.display = "flex";
+      messageInputContainer.style.display = "block";
+      
+      // Hide join forms
+      document.getElementById("room-selection").style.display = "none";
+      document.getElementById("interest-selection").style.display = "none";
+    }
+
+    function hideChatInterface() {
+      messagesContainer.style.display = "none";
+      messageInputContainer.style.display = "none";
+    }
+
     function showNotification(message, type = 'info') {
       const notificationContainer = document.getElementById('notification-container');
       if (!notificationContainer) return;
@@ -703,7 +709,6 @@
         avatar.src = data.avatar;
         avatar.alt = data.nickname;
         avatar.onerror = () => {
-          // Create a simple colored avatar if image fails
           const initials = data.nickname.substring(0, 2).toUpperCase();
           const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
           const color = colors[Math.abs(data.nickname.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length];
@@ -746,13 +751,15 @@
       }
       
       messages.appendChild(li);
-      messages.scrollTop = messages.scrollHeight;
       
-      // Add glow effect for new messages
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        messages.scrollTop = messages.scrollHeight;
+      }, 10);
+      
       li.classList.add('glow');
       setTimeout(() => li.classList.remove('glow'), 2000);
       
-      // Play sound effect for other users' messages
       if (data.nickname !== nickname) {
         playNotificationSound();
       }
@@ -802,18 +809,17 @@
         socket.emit("join1v1");
       } else {
         document.getElementById("chat-container").style.display = "flex";
-        backBtn.style.display = "inline-block";
-
+        
         if (mode === "room") {
-          document.getElementById("chat-container").classList.add("show-form");
           document.getElementById("room-selection").style.display = "block";
+          hideChatInterface();
           roomName.textContent = "Private Room";
         } else if (mode === "interest") {
-          document.getElementById("chat-container").classList.add("show-form");
           document.getElementById("interest-selection").style.display = "block";
+          hideChatInterface();
           roomName.textContent = "Interest Chat";
         } else if (mode === "random") {
-          document.getElementById("chat-container").classList.remove("show-form");
+          showChatInterface();
           socket.emit("joinMode", "random");
           roomName.textContent = "Random Chat";
           currentRoom = "random";
@@ -877,9 +883,22 @@
       }
     }
 
+    // ===== SKIP FUNCTIONALITY =====
+    
+    function skipPartner() {
+      if (currentPartner) {
+        // Already in chat, skip current partner
+        socket.emit("skip1v1");
+        showNotification("Looking for a new partner...", 'info');
+      } else {
+        // In queue, skip to next available partner
+        socket.emit("skip1v1");
+        showNotification("Searching for next available partner...", 'info');
+      }
+    }
+
     // ===== FORM HANDLERS =====
     
-    // Room joining
     document.getElementById("join-room-btn").onclick = () => {
       const roomInput = document.getElementById("room");
       const room = roomInput.value.trim();
@@ -894,7 +913,7 @@
       }
       
       document.getElementById("room-selection").style.display = "none";
-      document.getElementById("chat-container").classList.remove("show-form");
+      showChatInterface();
       
       socket.emit("joinMode", "room", room);
       roomName.textContent = `Room: ${room}`;
@@ -905,14 +924,13 @@
       setTimeout(() => input?.focus(), 100);
     };
 
-    // Interest joining
     document.getElementById("join-interest-btn").onclick = () => {
       const interestSelect = document.getElementById("interest");
       const interest = interestSelect.value;
       const interestText = interestSelect.selectedOptions[0].text;
       
       document.getElementById("interest-selection").style.display = "none";
-      document.getElementById("chat-container").classList.remove("show-form");
+      showChatInterface();
       
       socket.emit("joinMode", "interest", interest);
       roomName.textContent = interestText;
@@ -925,7 +943,8 @@
 
     // Back buttons
     backBtn.onclick = () => {
-      const isInForm = document.getElementById("chat-container").classList.contains("show-form");
+      const isInForm = document.getElementById("room-selection").style.display === "block" || 
+                       document.getElementById("interest-selection").style.display === "block";
       
       if (isInForm) {
         resetChatContainer();
@@ -959,7 +978,7 @@
     function resetChatContainer() {
       document.getElementById("room-selection").style.display = "none";
       document.getElementById("interest-selection").style.display = "none";
-      document.getElementById("chat-container").classList.remove("show-form");
+      hideChatInterface();
       
       const roomInput = document.getElementById("room");
       const interestSelect = document.getElementById("interest");
@@ -969,6 +988,7 @@
       if (messages) messages.innerHTML = "";
       currentRoom = "";
       currentPartner = null;
+      skipChatBtn.style.display = 'none';
     }
 
     // ===== MESSAGE SENDING =====
@@ -989,7 +1009,6 @@
       });
     }
 
-    // Character counter and typing
     if (input && charCount) {
       input.addEventListener('input', () => {
         charCount.textContent = input.value.length;
@@ -1000,7 +1019,6 @@
           sendBtn.classList.remove('active');
         }
 
-        // Typing indicator
         if (input.value.trim() && !isTyping) {
           socket.emit("typing");
           isTyping = true;
@@ -1023,9 +1041,6 @@
     const roomInput = document.getElementById("room");
     const joinRoomBtn = document.getElementById("join-room-btn");
     if (roomInput && joinRoomBtn) {
-      joinRoomBtn.disabled = true;
-      joinRoomBtn.style.opacity = "0.6";
-      
       roomInput.addEventListener('input', (e) => {
         if (e.target.value.trim().length >= 3) {
           joinRoomBtn.disabled = false;
@@ -1044,7 +1059,8 @@
         const chatContainer = document.getElementById("chat-container");
         const waitingContainer = document.getElementById("waiting-container");
         
-        const isInForm = chatContainer && chatContainer.classList.contains("show-form");
+        const isInForm = document.getElementById("room-selection").style.display === "block" || 
+                         document.getElementById("interest-selection").style.display === "block";
         const isInWaiting = waitingContainer && waitingContainer.style.display === "flex";
         const isInChat = chatContainer && chatContainer.style.display === "flex" && !isInForm;
         
@@ -1089,7 +1105,6 @@
     // ===== INITIALIZATION ON PAGE LOAD =====
     
     document.addEventListener('DOMContentLoaded', () => {
-      // Check age verification on page load
       checkAgeVerification();
       
       // Prevent zoom on mobile
@@ -1121,7 +1136,7 @@
       console.error('Unhandled promise rejection:', e.reason);
     });
 
-    console.log('🚀 Hideout Chat initialized with age verification and bot protection');
+    console.log('🚀 Hideout Chat initialized with age verification, captcha, and skip functionality');
   </script>
 </body>
 </html>

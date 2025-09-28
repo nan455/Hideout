@@ -11,24 +11,21 @@ const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"]
   },
-  // Optimize for performance
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000,
   upgradeTimeout: 10000,
-  maxHttpBufferSize: 1e6, // 1MB
+  maxHttpBufferSize: 1e6,
   allowEIO3: true
 });
 
-// Middleware
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting for HTTP requests
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -36,20 +33,14 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// ===== PERFORMANCE OPTIMIZATIONS =====
-
-// Connection limits
-const MAX_CONNECTIONS = 2000; // Railway free tier limit
-const connectionLimiter = new Map(); // IP -> connection count
+const MAX_CONNECTIONS = 2000;
+const connectionLimiter = new Map();
 const MAX_CONNECTIONS_PER_IP = 5;
+const messageRates = new Map();
+const MESSAGE_RATE_LIMIT = 15;
+const RATE_WINDOW = 60000;
+const MEMORY_CHECK_INTERVAL = 30000;
 
-// Message rate limiting
-const messageRates = new Map(); // userId -> {count, resetTime}
-const MESSAGE_RATE_LIMIT = 15; // messages per minute
-const RATE_WINDOW = 60000; // 1 minute
-
-// Memory monitoring
-const MEMORY_CHECK_INTERVAL = 30000; // 30 seconds
 let performanceStats = {
   startTime: Date.now(),
   totalConnections: 0,
@@ -58,14 +49,12 @@ let performanceStats = {
   memoryUsage: 0
 };
 
-// ===== ENHANCED ROOM MANAGEMENT =====
-
 class OptimizedRoomManager {
   constructor() {
     this.rooms = new Map();
     this.userRooms = new Map();
     this.roomStats = new Map();
-    this.waitingQueue = []; // For 1v1 mode
+    this.waitingQueue = [];
     this.activePairs = new Map();
     this.pairCounter = 0;
   }
@@ -135,7 +124,6 @@ class OptimizedRoomManager {
     }
   }
 
-  // 1v1 Queue Management
   addToQueue(socket, nickname, avatar) {
     const queueUser = {
       socketId: socket.id,
@@ -147,11 +135,13 @@ class OptimizedRoomManager {
     this.waitingQueue.push(queueUser);
     socket.emit("queueStatus", {
       position: this.waitingQueue.length,
-      message: "Looking for a partner..."
+      message: "Looking for a partner...",
+      canSkip: this.waitingQueue.length > 1
     });
 
     console.log(`🔍 ${nickname} joined 1v1 queue. Queue length: ${this.waitingQueue.length}`);
     this.matchUsers();
+    this.updateQueuePositions();
   }
 
   matchUsers() {
@@ -218,7 +208,8 @@ class OptimizedRoomManager {
       if (socket) {
         socket.emit("queueStatus", {
           position: index + 1,
-          message: index === 0 ? "You're next in line!" : `Position ${index + 1} in queue`
+          message: index === 0 ? "You're next in line!" : `Position ${index + 1} in queue`,
+          canSkip: this.waitingQueue.length > 1
         });
       }
     });
@@ -232,6 +223,34 @@ class OptimizedRoomManager {
       return true;
     }
     return false;
+  }
+
+  skipCurrentPartner(socket) {
+    if (this.activePairs.has(socket.id)) {
+      const pairInfo = this.activePairs.get(socket.id);
+      const partnerSocket = io.sockets.sockets.get(pairInfo.partnerId);
+      
+      if (partnerSocket) {
+        // Notify partner they were skipped
+        partnerSocket.emit("partnerSkipped", {
+          message: "Your partner moved on to chat with someone else"
+        });
+        
+        // Add partner back to queue
+        partnerSocket.leave(pairInfo.roomId);
+        partnerSocket.room = null;
+        this.addToQueue(partnerSocket, partnerSocket.nickname, partnerSocket.avatar);
+      }
+      
+      // Add current user back to queue
+      socket.leave(pairInfo.roomId);
+      socket.room = null;
+      this.activePairs.delete(socket.id);
+      this.activePairs.delete(pairInfo.partnerId);
+      this.addToQueue(socket, socket.nickname, socket.avatar);
+      
+      console.log(`⏭️ User ${socket.nickname} skipped partner in room ${pairInfo.roomId}`);
+    }
   }
 
   handlePairDisconnection(socket) {
@@ -268,8 +287,6 @@ class OptimizedRoomManager {
 
 const roomManager = new OptimizedRoomManager();
 
-// ===== UTILITY FUNCTIONS =====
-
 function randomName() {
   const adjectives = [
     "Silent", "Wild", "Happy", "Crazy", "Mysterious", "Swift", "Noble", "Brave", 
@@ -287,7 +304,6 @@ function randomName() {
 }
 
 function randomAvatar() {
-  // Use online avatar service to avoid storing images
   const styles = ['avataaars', 'bottts', 'gridy', 'personas'];
   const style = styles[Math.floor(Math.random() * styles.length)];
   const seed = Math.random().toString(36).substring(7);
@@ -299,15 +315,11 @@ function isValidMessage(message) {
   if (message.length > 500) return false;
   if (message.trim().length === 0) return false;
   
-  // Basic profanity filter (you can enhance this)
   const badWords = ['spam', 'hack', 'admin', 'moderator'];
   const lowerMsg = message.toLowerCase();
   return !badWords.some(word => lowerMsg.includes(word));
 }
 
-// ===== CAPTCHA VERIFICATION =====
-
-// Simple math captcha generation
 function generateCaptcha() {
   const num1 = Math.floor(Math.random() * 20) + 1;
   const num2 = Math.floor(Math.random() * 20) + 1;
@@ -336,12 +348,8 @@ function generateCaptcha() {
   return { question, answer };
 }
 
-// Store captcha answers temporarily
 const captchaStore = new Map();
 
-// ===== ROUTES =====
-
-// Captcha endpoint
 app.post('/verify-captcha', (req, res) => {
   const { captchaId, answer } = req.body;
   const correctAnswer = captchaStore.get(captchaId);
@@ -358,14 +366,12 @@ app.post('/verify-captcha', (req, res) => {
   }
 });
 
-// Generate captcha endpoint
 app.get('/generate-captcha', (req, res) => {
   const captcha = generateCaptcha();
   const captchaId = Math.random().toString(36).substring(7);
   
   captchaStore.set(captchaId, captcha.answer);
   
-  // Auto-expire captcha after 5 minutes
   setTimeout(() => {
     captchaStore.delete(captchaId);
   }, 5 * 60 * 1000);
@@ -376,7 +382,6 @@ app.get('/generate-captcha', (req, res) => {
   });
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   const memoryUsage = process.memoryUsage();
   performanceStats.memoryUsage = Math.round(memoryUsage.heapUsed / 1024 / 1024);
@@ -391,7 +396,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Stats endpoint (for monitoring)
 app.get('/stats', (req, res) => {
   res.json({
     server: {
@@ -404,15 +408,11 @@ app.get('/stats', (req, res) => {
   });
 });
 
-// ===== SOCKET.IO CONNECTION HANDLING =====
-
 io.use((socket, next) => {
-  // Connection limit check
   if (io.engine.clientsCount >= MAX_CONNECTIONS) {
     return next(new Error('Server at capacity. Please try again later.'));
   }
 
-  // IP-based connection limiting
   const clientIP = socket.handshake.address;
   const connections = connectionLimiter.get(clientIP) || 0;
 
@@ -431,7 +431,6 @@ io.on("connection", (socket) => {
   socket.nickname = nickname;
   socket.avatar = avatar;
   
-  // Update performance stats
   performanceStats.totalConnections++;
   performanceStats.peakConnections = Math.max(
     performanceStats.peakConnections, 
@@ -441,8 +440,6 @@ io.on("connection", (socket) => {
   console.log(`🔗 ${nickname} connected (${socket.id}) - Total: ${io.engine.clientsCount}`);
 
   socket.emit("welcome", { nickname, avatar });
-
-  // ===== EVENT HANDLERS =====
 
   socket.on("joinMode", (mode, param) => {
     let roomName = "";
@@ -473,6 +470,11 @@ io.on("connection", (socket) => {
     roomManager.addToQueue(socket, nickname, avatar);
   });
 
+  socket.on("skip1v1", () => {
+    console.log(`⏭️ ${nickname} wants to skip current partner`);
+    roomManager.skipCurrentPartner(socket);
+  });
+
   socket.on("leave1v1", () => {
     roomManager.removeFromQueue(socket.id);
     if (roomManager.activePairs.has(socket.id)) {
@@ -482,7 +484,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("chat message", (msg) => {
-    // Rate limiting check
     const now = Date.now();
     if (!messageRates.has(socket.id)) {
       messageRates.set(socket.id, { count: 0, resetTime: now + RATE_WINDOW });
@@ -501,7 +502,6 @@ io.on("connection", (socket) => {
 
     userRate.count++;
 
-    // Message validation
     if (!isValidMessage(msg)) {
       socket.emit('message_error', 'Invalid message content');
       return;
@@ -513,7 +513,7 @@ io.on("connection", (socket) => {
       io.to(socket.room).emit("chat message", {
         nickname,
         avatar,
-        msg: msg.substring(0, 500), // Ensure length limit
+        msg: msg.substring(0, 500),
         timestamp: Date.now(),
         type: "user"
       });
@@ -541,7 +541,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log(`🔌 ${nickname} disconnected (${socket.id}) - Reason: ${reason}`);
 
-    // Clean up IP connection count
     const clientIP = socket.handshake.address;
     const connections = connectionLimiter.get(clientIP);
     if (connections > 1) {
@@ -550,16 +549,13 @@ io.on("connection", (socket) => {
       connectionLimiter.delete(clientIP);
     }
 
-    // Clean up message rate limiting
     messageRates.delete(socket.id);
 
-    // Handle 1v1 disconnection
     roomManager.removeFromQueue(socket.id);
     if (roomManager.activePairs.has(socket.id)) {
       roomManager.handlePairDisconnection(socket);
     }
 
-    // Handle regular room disconnection
     if (socket.room) {
       io.to(socket.room).emit("chat message", {
         nickname: "System",
@@ -574,8 +570,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// ===== MEMORY MONITORING =====
-
 setInterval(() => {
   const memoryUsage = process.memoryUsage();
   const usedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
@@ -585,7 +579,6 @@ setInterval(() => {
   
   console.log(`📊 Memory: ${usedMB}MB/${totalMB}MB | Connections: ${io.engine.clientsCount} | Rooms: ${roomManager.rooms.size}`);
   
-  // Cleanup expired data
   const now = Date.now();
   for (const [userId, rate] of messageRates.entries()) {
     if (now > rate.resetTime + RATE_WINDOW) {
@@ -593,13 +586,10 @@ setInterval(() => {
     }
   }
   
-  // Warn if memory usage is high (Railway free tier has ~512MB)
   if (usedMB > 400) {
     console.warn(`⚠️ High memory usage: ${usedMB}MB - Consider optimization`);
   }
 }, MEMORY_CHECK_INTERVAL);
-
-// ===== SERVER START =====
 
 const PORT = process.env.PORT || 8080;
 
@@ -610,7 +600,6 @@ server.listen(PORT, () => {
   console.log(`⚡ Performance monitoring active`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('🛑 SIGTERM received, shutting down gracefully');
   server.close(() => {

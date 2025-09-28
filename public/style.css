@@ -2339,6 +2339,449 @@ body::before {
   gap: 0.75rem;
   position: relative;
   overflow: hidden;
+}/* Add these CSS additions to your existing style.css file */
+
+/* ===== IMPROVED CAPTCHA STYLES ===== */
+
+.captcha-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+#captcha-answer {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+#captcha-answer:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+#captcha-answer::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.verify-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--success-color), #16a34a);
+  border: none;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.verify-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.verify-btn:active {
+  transform: translateY(0);
+}
+
+/* Remove the old captcha submit button styles since we're using verify-btn now */
+.captcha-submit {
+  display: none;
+}
+
+/* ===== SKIP BUTTON STYLES ===== */
+
+.skip-btn, .skip-chat-btn {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid var(--warning-color);
+  color: var(--warning-color);
+  border-radius: 25px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-left: 1rem;
+}
+
+.skip-btn:hover, .skip-chat-btn:hover {
+  background: var(--warning-color);
+  color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(251, 191, 36, 0.3);
+}
+
+.skip-btn:active, .skip-chat-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== IMPROVED FORM LAYOUT ===== */
+
+/* Ensure forms don't overlap with chat interface */
+#chat-container {
+  position: relative;
+}
+
+.join-form {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: rgba(15, 15, 35, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  margin: 0;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.join-form.show {
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Hide messages and input when forms are shown */
+#chat-container .messages-container,
+#chat-container .message-input-container {
+  flex: 1;
+}
+
+#chat-container .messages-container[style*="none"],
+#chat-container .message-input-container[style*="none"] {
+  display: none !important;
+}
+
+/* ===== IMPROVED MESSAGE SCROLLING ===== */
+
+#messages {
+  height: 100%;
+  max-height: none;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Ensure message container takes full height */
+.messages-container {
+  flex: 1;
+  min-height: 0; /* Important for flex child to allow scrolling */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== WAITING SCREEN IMPROVEMENTS ===== */
+
+.waiting-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.waiting-header {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideDown 0.3s ease;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+#queue-status {
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(102, 126, 234, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  font-size: 0.9rem;
+}
+
+/* ===== CHAT HEADER IMPROVEMENTS ===== */
+
+.chat-header {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideDown 0.3s ease;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ===== RESPONSIVE IMPROVEMENTS ===== */
+
+@media (max-width: 768px) {
+  .join-form {
+    padding: 1.5rem;
+    max-width: 95%;
+    top: 50%;
+    left: 50%;
+  }
+  
+  .captcha-input-section {
+    gap: 0.75rem;
+  }
+  
+  .verify-btn {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+  }
+  
+  .skip-btn, .skip-chat-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
+  }
+  
+  .waiting-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .waiting-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .chat-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .room-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .join-form {
+    padding: 1.25rem;
+  }
+  
+  .captcha-question {
+    font-size: 1.5rem;
+    padding: 0.75rem;
+  }
+  
+  #captcha-answer {
+    font-size: 1rem;
+    padding: 0.875rem;
+  }
+  
+  .verify-btn {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9rem;
+  }
+  
+  .skip-btn, .skip-chat-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+  }
+}
+
+/* ===== IMPROVED ANIMATIONS ===== */
+
+.join-form {
+  animation: formSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes formSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.verify-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.verify-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.verify-btn:hover::before {
+  left: 100%;
+}
+
+/* ===== FIX FOR MESSAGE INPUT VISIBILITY ===== */
+
+#input {
+  background: transparent !important;
+  color: white !important;
+}
+
+#input:focus {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+#input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure input is visible when typing */
+#input:not(:placeholder-shown) {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ===== LOADING STATES ===== */
+
+.join-btn:disabled,
+.verify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.join-btn.loading,
+.verify-btn.loading {
+  pointer-events: none;
+  position: relative;
+}
+
+.join-btn.loading::after,
+.verify-btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid transparent;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+.skip-btn:focus,
+.skip-chat-btn:focus,
+.verify-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .join-form {
+    border: 2px solid #ffffff;
+    background: rgba(0, 0, 0, 0.95);
+  }
+  
+  .verify-btn {
+    border: 2px solid var(--success-color);
+  }
+  
+  .skip-btn, .skip-chat-btn {
+    border: 2px solid var(--warning-color);
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+
+.join-form {
+  contain: layout style paint;
+  will-change: transform, opacity;
+}
+
+.verify-btn,
+.skip-btn,
+.skip-chat-btn {
+  will-change: transform;
+}
+
+/* ===== FINAL TOUCH-UPS ===== */
+
+/* Ensure proper z-index stacking */
+.modal-overlay {
+  z-index: 1000;
+}
+
+.join-form {
+  z-index: 10;
+}
+
+.connection-status {
+  z-index: 200;
+}
+
+.notification-container {
+  z-index: 300;
+}
+
+/* Smooth transitions for all interactive elements */
+button, input, select {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent layout shift */
+.waiting-info, .room-info {
+  min-height: 2rem;
+}
+
+/* Ensure proper flex behavior */
+.messages-container {
+  overflow: hidden;
+}
+
+#messages {
+  flex-shrink: 1;
+  min-height: 0;
 }
 
 .join-btn::before {
